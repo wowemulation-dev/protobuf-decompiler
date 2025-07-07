@@ -91,8 +91,7 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
             set(MSBUILD_PARALLEL_FLAG "/m")
         endif()
         set(AUTOTOOLS_BUILD_COMMAND
-            ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects
-            msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64 ${MSBUILD_PARALLEL_FLAG}
+            cmd /c "cd /d ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects && msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64 ${MSBUILD_PARALLEL_FLAG}"
         )
         # Copy built libraries and headers to install location
         set(AUTOTOOLS_INSTALL_COMMAND
