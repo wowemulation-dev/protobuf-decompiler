@@ -8,6 +8,7 @@
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <unordered_map>
 
 bool ParseFromCodedInputStreamWithDescriptorPool(google::protobuf::FileDescriptorProto& proto, google::protobuf::io::CodedInputStream* decoder)

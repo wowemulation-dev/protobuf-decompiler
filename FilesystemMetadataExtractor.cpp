@@ -1,5 +1,6 @@
 #include "FilesystemMetadataExtractor.h"
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/optional.hpp>
 #include <google/protobuf/wire_format_lite.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
