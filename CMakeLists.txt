@@ -181,16 +181,13 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
     # Add dependency to ensure protobuf is built first
     add_dependencies(protobuf_decompiler protobuf_external)
 else()
-    # Use system protobuf
+    # Use system protobuf with modern CMake targets
     target_link_libraries(protobuf_decompiler
         PRIVATE
-            ${PROTOBUF_LIBRARIES}
+            protobuf::libprotobuf
             Boost::filesystem
             Boost::system
             Boost::program_options)
-    target_include_directories(protobuf_decompiler
-        PRIVATE
-            ${PROTOBUF_INCLUDE_DIRS})
 endif()
 
 # Add project source directory to includes
