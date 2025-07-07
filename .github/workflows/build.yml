@@ -37,7 +37,7 @@ jobs:
         git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
         C:\vcpkg\bootstrap-vcpkg.bat
         C:\vcpkg\vcpkg integrate install
-        C:\vcpkg\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows boost-program-options:x64-windows protobuf:x64-windows
+        C:\vcpkg\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows boost-program-options:x64-windows
 
     - name: Install dependencies (macOS)
       if: matrix.os == 'macos-latest'
