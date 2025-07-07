@@ -88,12 +88,9 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
                 --enable-static
                 --disable-shared
                 --disable-dependency-tracking
-                CXX=${CMAKE_CXX_COMPILER}
-                CC=${CMAKE_C_COMPILER}
-                CXXFLAGS="-Wno-deprecated-declarations -Wno-error"
-                CFLAGS="-Wno-deprecated-declarations -Wno-error"
         )
-        set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL})
+        # Use environment variables to pass compiler flags for the build step
+        set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL} CXXFLAGS="-Wno-deprecated-declarations" CFLAGS="-Wno-deprecated-declarations")
         set(AUTOTOOLS_INSTALL_COMMAND make install)
     else()
         # On other Unix systems, use standard shell commands
