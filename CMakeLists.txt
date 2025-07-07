@@ -78,28 +78,42 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
     
     # Configure autotools commands based on platform
     if(WIN32)
-        # On Windows, use MSBuild to build Visual Studio solution for MSVC compatibility
-        # First run extract_includes.bat to prepare headers
-        set(AUTOTOOLS_CONFIGURE_COMMAND
-            ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects 
-            cmd /c extract_includes.bat
+        # On Windows, we need to handle Visual Studio builds differently
+        # Download and extract protobuf first, then build using custom commands
+        ExternalProject_Add(
+            protobuf_download
+            GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+            GIT_TAG        v2.6.1
+            PREFIX         ${PROTOBUF_PREFIX}
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+            BUILD_IN_SOURCE 1
         )
-        # Build using MSBuild - it will auto-upgrade old project files
-        if(CMAKE_BUILD_PARALLEL_LEVEL)
-            set(MSBUILD_PARALLEL_FLAG "/m:${CMAKE_BUILD_PARALLEL_LEVEL}")
-        else()
-            set(MSBUILD_PARALLEL_FLAG "/m")
-        endif()
-        set(AUTOTOOLS_BUILD_COMMAND
-            cmd /c "cd /d ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects && msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64 ${MSBUILD_PARALLEL_FLAG}"
-        )
-        # Copy built libraries and headers to install location
-        set(AUTOTOOLS_INSTALL_COMMAND
-            ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/lib ${PROTOBUF_PREFIX}/install/bin ${PROTOBUF_PREFIX}/install/include &&
-            ${CMAKE_COMMAND} -E copy_directory ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/include ${PROTOBUF_PREFIX}/install/include &&
-            ${CMAKE_COMMAND} -E copy ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/libprotobuf.lib ${PROTOBUF_PREFIX}/install/lib/ &&
-            ${CMAKE_COMMAND} -E copy ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/libprotoc.lib ${PROTOBUF_PREFIX}/install/lib/ &&
-            ${CMAKE_COMMAND} -E copy ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/protoc.exe ${PROTOBUF_PREFIX}/install/bin/
+        
+        # Create a custom target for building protobuf on Windows
+        add_custom_target(protobuf_external ALL
+            COMMAND ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects
+                    cmd /c extract_includes.bat
+            COMMAND ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects
+                    msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/lib
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/bin
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/include
+            COMMAND ${CMAKE_COMMAND} -E copy_directory 
+                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/include 
+                    ${PROTOBUF_PREFIX}/install/include
+            COMMAND ${CMAKE_COMMAND} -E copy
+                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/x64/Release/libprotobuf.lib
+                    ${PROTOBUF_PREFIX}/install/lib/libprotobuf.lib
+            COMMAND ${CMAKE_COMMAND} -E copy
+                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/x64/Release/libprotoc.lib
+                    ${PROTOBUF_PREFIX}/install/lib/libprotoc.lib
+            COMMAND ${CMAKE_COMMAND} -E copy
+                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/x64/Release/protoc.exe
+                    ${PROTOBUF_PREFIX}/install/bin/protoc.exe
+            DEPENDS protobuf_download
+            COMMENT "Building protobuf for Windows using Visual Studio"
         )
     elseif(APPLE)
         # On macOS, add flags to suppress deprecated API warnings from protobuf 2.6.1
@@ -117,6 +131,17 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
         # Use environment variables to pass compiler flags for the build step
         set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL} CXXFLAGS="-Wno-deprecated-declarations" CFLAGS="-Wno-deprecated-declarations")
         set(AUTOTOOLS_INSTALL_COMMAND make install)
+        
+        ExternalProject_Add(
+            protobuf_external
+            GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+            GIT_TAG        v2.6.1
+            PREFIX         ${PROTOBUF_PREFIX}
+            CONFIGURE_COMMAND ${AUTOTOOLS_CONFIGURE_COMMAND}
+            BUILD_COMMAND ${AUTOTOOLS_BUILD_COMMAND}
+            INSTALL_COMMAND ${AUTOTOOLS_INSTALL_COMMAND}
+            BUILD_IN_SOURCE 1
+        )
     else()
         # On other Unix systems, use standard shell commands
         set(AUTOTOOLS_CONFIGURE_COMMAND
@@ -134,18 +159,18 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
         )
         set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL})
         set(AUTOTOOLS_INSTALL_COMMAND make install)
+        
+        ExternalProject_Add(
+            protobuf_external
+            GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+            GIT_TAG        v2.6.1
+            PREFIX         ${PROTOBUF_PREFIX}
+            CONFIGURE_COMMAND ${AUTOTOOLS_CONFIGURE_COMMAND}
+            BUILD_COMMAND ${AUTOTOOLS_BUILD_COMMAND}
+            INSTALL_COMMAND ${AUTOTOOLS_INSTALL_COMMAND}
+            BUILD_IN_SOURCE 1
+        )
     endif()
-
-    ExternalProject_Add(
-        protobuf_external
-        GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
-        GIT_TAG        v2.6.1
-        PREFIX         ${PROTOBUF_PREFIX}
-        CONFIGURE_COMMAND ${AUTOTOOLS_CONFIGURE_COMMAND}
-        BUILD_COMMAND ${AUTOTOOLS_BUILD_COMMAND}
-        INSTALL_COMMAND ${AUTOTOOLS_INSTALL_COMMAND}
-        BUILD_IN_SOURCE 1
-    )
     
     # Set variables for the built protobuf
     set(PROTOBUF_FOUND TRUE)
