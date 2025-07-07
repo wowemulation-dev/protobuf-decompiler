@@ -38,9 +38,6 @@ jobs:
         C:\vcpkg\bootstrap-vcpkg.bat
         C:\vcpkg\vcpkg integrate install
         C:\vcpkg\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows boost-program-options:x64-windows
-        # Install MSYS2 for autotools (needed to build protobuf 2.6.1 from source)
-        choco install msys2 --no-progress
-        C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf automake-wrapper libtool pkgconf"
 
     - name: Install dependencies (macOS)
       if: matrix.os == 'macos-latest'
@@ -64,7 +61,6 @@ jobs:
       env:
         CMAKE_BUILD_PARALLEL_LEVEL: 2
       run: |
-        set PATH=C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin;%PATH%
         cmake -G "${{ matrix.cmake_generator }}" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ..
 
     - name: Build (Unix)
@@ -82,7 +78,6 @@ jobs:
       working-directory: build
       shell: cmd
       run: |
-        set PATH=C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin;%PATH%
         cmake --build . --config Release
 
     - name: Upload artifacts (Unix)

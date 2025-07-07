@@ -78,13 +78,25 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
     
     # Configure autotools commands based on platform
     if(WIN32)
-        # On Windows, use MSYS2 bash to run autotools and let it detect MinGW-w64 compilers
-        # Don't pass MSVC compilers as they're incompatible with autotools
+        # On Windows, use MSBuild to build Visual Studio solution for MSVC compatibility
+        # First run extract_includes.bat to prepare headers
         set(AUTOTOOLS_CONFIGURE_COMMAND
-            bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && mkdir -p gtest && touch gtest/CMakeLists.txt && autoreconf -f -i -Wall,no-obsolete && ./configure --prefix=${PROTOBUF_PREFIX}/install --enable-static --disable-shared --disable-dependency-tracking"
+            ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects 
+            cmd /c extract_includes.bat
         )
-        set(AUTOTOOLS_BUILD_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make -j${CMAKE_BUILD_PARALLEL_LEVEL}")
-        set(AUTOTOOLS_INSTALL_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make install")
+        # Build using MSBuild - it will auto-upgrade old project files
+        set(AUTOTOOLS_BUILD_COMMAND
+            ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects
+            msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64 /m:${CMAKE_BUILD_PARALLEL_LEVEL}
+        )
+        # Copy built libraries and headers to install location
+        set(AUTOTOOLS_INSTALL_COMMAND
+            ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/lib ${PROTOBUF_PREFIX}/install/bin ${PROTOBUF_PREFIX}/install/include &&
+            ${CMAKE_COMMAND} -E copy_directory ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/include ${PROTOBUF_PREFIX}/install/include &&
+            ${CMAKE_COMMAND} -E copy ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/libprotobuf.lib ${PROTOBUF_PREFIX}/install/lib/ &&
+            ${CMAKE_COMMAND} -E copy ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/libprotoc.lib ${PROTOBUF_PREFIX}/install/lib/ &&
+            ${CMAKE_COMMAND} -E copy ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/protoc.exe ${PROTOBUF_PREFIX}/install/bin/
+        )
     elseif(APPLE)
         # On macOS, add flags to suppress deprecated API warnings from protobuf 2.6.1
         set(AUTOTOOLS_CONFIGURE_COMMAND
@@ -135,7 +147,7 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
     set(PROTOBUF_FOUND TRUE)
     set(PROTOBUF_INCLUDE_DIRS ${PROTOBUF_PREFIX}/install/include)
     if(WIN32)
-        set(PROTOBUF_LIBRARIES ${PROTOBUF_PREFIX}/install/lib/libprotobuf.a)
+        set(PROTOBUF_LIBRARIES ${PROTOBUF_PREFIX}/install/lib/libprotobuf.lib)
         set(PROTOBUF_PROTOC_EXECUTABLE ${PROTOBUF_PREFIX}/install/bin/protoc.exe)
     else()
         set(PROTOBUF_LIBRARIES ${PROTOBUF_PREFIX}/install/lib/libprotobuf.a)
