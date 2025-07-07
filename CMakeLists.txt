@@ -85,9 +85,14 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
             cmd /c extract_includes.bat
         )
         # Build using MSBuild - it will auto-upgrade old project files
+        if(CMAKE_BUILD_PARALLEL_LEVEL)
+            set(MSBUILD_PARALLEL_FLAG "/m:${CMAKE_BUILD_PARALLEL_LEVEL}")
+        else()
+            set(MSBUILD_PARALLEL_FLAG "/m")
+        endif()
         set(AUTOTOOLS_BUILD_COMMAND
             ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects
-            msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64 /m:${CMAKE_BUILD_PARALLEL_LEVEL}
+            msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64 ${MSBUILD_PARALLEL_FLAG}
         )
         # Copy built libraries and headers to install location
         set(AUTOTOOLS_INSTALL_COMMAND
