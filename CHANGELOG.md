@@ -36,14 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed missing `#include <algorithm>` in MetadataExtractor.cpp
 - Fixed GitHub Actions multi-platform build failures
-  - Resolved Windows MSYS2 autotools PATH configuration issues
-  - Fixed Windows compiler path quoting for spaces in Visual Studio paths
   - Added missing `<list>` header for macOS clang compilation
   - Added missing `<boost/filesystem/directory.hpp>` for directory_iterator support
   - Implemented platform-specific autotools command handling in CMakeLists.txt
   - Added macOS-specific compiler flags to suppress deprecated API warnings in protobuf 2.6.1
-  - Switched Windows builds to use vcpkg protobuf for MSVC compatibility
-  - Simplified build system to avoid autotools/MSVC incompatibility on Windows
+
+### Removed
+- Temporarily disabled Windows builds in GitHub Actions due to protobuf 2.6.1 compatibility issues
+  - Modern vcpkg protobuf has incompatible API changes
+  - Building protobuf 2.6.1 from source on Windows requires complex Visual Studio setup
 
 ## [1.0.0] - 2023-04-14
 

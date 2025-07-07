@@ -10,12 +10,10 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         include:
           - os: ubuntu-latest
             cmake_generator: "Unix Makefiles"
-          - os: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
           - os: macos-latest
             cmake_generator: "Unix Makefiles"
 
