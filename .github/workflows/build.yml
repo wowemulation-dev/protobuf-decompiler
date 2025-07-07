@@ -1,0 +1,100 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            cmake_generator: "Unix Makefiles"
+          - os: windows-latest
+            cmake_generator: "Visual Studio 17 2022"
+          - os: macos-latest
+            cmake_generator: "Unix Makefiles"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential libboost-filesystem-dev libboost-system-dev libboost-program-options-dev autoconf automake libtool
+
+    - name: Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        # Setup vcpkg
+        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat
+        C:\vcpkg\vcpkg integrate install
+        C:\vcpkg\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows boost-program-options:x64-windows
+        # Install MSYS2 for autotools (needed to build protobuf 2.6.1 from source)
+        choco install msys2 --no-progress
+        C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf automake-wrapper libtool pkgconf"
+
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install cmake boost autoconf automake libtool
+
+    - name: Create build directory
+      run: mkdir build
+
+    - name: Configure CMake (Unix)
+      if: matrix.os != 'windows-latest'
+      working-directory: build
+      env:
+        CMAKE_BUILD_PARALLEL_LEVEL: 2
+      run: cmake -G "${{ matrix.cmake_generator }}" ..
+
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: build
+      shell: cmd
+      env:
+        CMAKE_BUILD_PARALLEL_LEVEL: 2
+      run: |
+        set PATH=C:\tools\msys64\usr\bin;%PATH%
+        cmake -G "${{ matrix.cmake_generator }}" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ..
+
+    - name: Build (Unix)
+      if: matrix.os != 'windows-latest'
+      working-directory: build
+      run: |
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          make -j$(sysctl -n hw.ncpu)
+        else
+          make -j$(nproc)
+        fi
+
+    - name: Build (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: build
+      shell: cmd
+      run: |
+        set PATH=C:\tools\msys64\usr\bin;%PATH%
+        cmake --build . --config Release
+
+    - name: Upload artifacts (Unix)
+      if: matrix.os != 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: protobuf-decompiler-${{ matrix.os }}
+        path: build/bin/protobuf_decompiler
+
+    - name: Upload artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: protobuf-decompiler-${{ matrix.os }}
+        path: build/bin/Release/protobuf_decompiler.exe

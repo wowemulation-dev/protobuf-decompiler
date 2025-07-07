@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- GitHub Actions workflow for automated multi-platform builds (Ubuntu, Windows, macOS) with proper dependency management and artifact generation
 - World of Warcraft-specific documentation with supported version information (6.0.2+ retail, 1.13.2+ Classic)
 - README.md with project description, build instructions, usage examples, and system requirements
 - MIT license badge
