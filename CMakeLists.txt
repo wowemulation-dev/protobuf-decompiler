@@ -70,9 +70,9 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
     
     # Configure autotools commands based on platform
     if(WIN32)
-        # On Windows, use MSYS2 bash to run autotools
+        # On Windows, use MSYS2 bash to run autotools with properly quoted compiler paths
         set(AUTOTOOLS_CONFIGURE_COMMAND
-            bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && mkdir -p gtest && touch gtest/CMakeLists.txt && autoreconf -f -i -Wall,no-obsolete && ./configure --prefix=${PROTOBUF_PREFIX}/install --enable-static --disable-shared --disable-dependency-tracking CXX=${CMAKE_CXX_COMPILER} CC=${CMAKE_C_COMPILER}"
+            bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && mkdir -p gtest && touch gtest/CMakeLists.txt && autoreconf -f -i -Wall,no-obsolete && ./configure --prefix=${PROTOBUF_PREFIX}/install --enable-static --disable-shared --disable-dependency-tracking CXX='${CMAKE_CXX_COMPILER}' CC='${CMAKE_C_COMPILER}'"
         )
         set(AUTOTOOLS_BUILD_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make -j${CMAKE_BUILD_PARALLEL_LEVEL}")
         set(AUTOTOOLS_INSTALL_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make install")
