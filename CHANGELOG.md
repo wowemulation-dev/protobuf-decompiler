@@ -8,24 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- World of Warcraft-specific documentation with supported version information (6.0.2+ retail, 1.13.2+ Classic)
+- README.md with project description, build instructions, usage examples, and system requirements
+- MIT license badge
+- Markdown linting configuration (.markdownlint.yaml)
 - Command-line help feature using Boost.Program_options
   - Added `--help` / `-h` option to display usage information
   - Added `--binary` option for specifying binary file path
   - Added `--directory` option for specifying directory to scan
-  - Improved error handling for invalid command-line arguments
+  - Error handling for invalid command-line arguments
 
 ### Changed
+- LICENSE file converted to markdown format (LICENSE.md)
 - Upgraded CMake minimum version requirement from 3.0 to 3.28
-  - Modernized CMake configuration with target-based dependencies
-  - Added compiler warnings (-Wall -Wextra -Wpedantic for GCC/Clang, /W4 for MSVC)
-  - Added C++17 standard requirement
-  - Improved build artifact organization (outputs to build/bin/)
-  - Added automatic compile_commands.json generation for IDE support
-  - Added optional code formatting target using clang-format
-- Build system now automatically detects and builds protobuf 2.6.1 from source if not found
+  - CMake configuration with target-based dependencies
+  - Compiler warnings (-Wall -Wextra -Wpedantic for GCC/Clang, /W4 for MSVC)
+  - C++17 standard requirement
+  - Build artifact organization (outputs to build/bin/)
+  - Automatic compile_commands.json generation for IDE support
+  - Code formatting target using clang-format
+- Build system detects and builds protobuf 2.6.1 from source if not found
   - Uses ExternalProject_Add to handle protobuf's autotools build system
   - Only builds from source if system protobuf is not version 2.6.1
-  - Provides clear status messages during configuration
+  - Status messages during configuration
 
 ### Fixed
 - Fixed missing `#include <algorithm>` in MetadataExtractor.cpp
