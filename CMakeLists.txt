@@ -68,12 +68,17 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
     # Note: protobuf 2.6.1 uses autotools, not CMake
     set(PROTOBUF_PREFIX ${CMAKE_BINARY_DIR}/protobuf-2.6.1)
     
-    ExternalProject_Add(
-        protobuf_external
-        GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
-        GIT_TAG        v2.6.1
-        PREFIX         ${PROTOBUF_PREFIX}
-        CONFIGURE_COMMAND 
+    # Configure autotools commands based on platform
+    if(WIN32)
+        # On Windows, use MSYS2 bash to run autotools
+        set(AUTOTOOLS_CONFIGURE_COMMAND
+            bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && mkdir -p gtest && touch gtest/CMakeLists.txt && autoreconf -f -i -Wall,no-obsolete && ./configure --prefix=${PROTOBUF_PREFIX}/install --enable-static --disable-shared --disable-dependency-tracking CXX=${CMAKE_CXX_COMPILER} CC=${CMAKE_C_COMPILER}"
+        )
+        set(AUTOTOOLS_BUILD_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make -j${CMAKE_BUILD_PARALLEL_LEVEL}")
+        set(AUTOTOOLS_INSTALL_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make install")
+    else()
+        # On Unix systems, use standard shell commands
+        set(AUTOTOOLS_CONFIGURE_COMMAND
             cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
             mkdir -p gtest &&
             touch gtest/CMakeLists.txt &&
@@ -85,16 +90,32 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
                 --disable-dependency-tracking
                 CXX=${CMAKE_CXX_COMPILER}
                 CC=${CMAKE_C_COMPILER}
-        BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL}
-        INSTALL_COMMAND make install
+        )
+        set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL})
+        set(AUTOTOOLS_INSTALL_COMMAND make install)
+    endif()
+
+    ExternalProject_Add(
+        protobuf_external
+        GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+        GIT_TAG        v2.6.1
+        PREFIX         ${PROTOBUF_PREFIX}
+        CONFIGURE_COMMAND ${AUTOTOOLS_CONFIGURE_COMMAND}
+        BUILD_COMMAND ${AUTOTOOLS_BUILD_COMMAND}
+        INSTALL_COMMAND ${AUTOTOOLS_INSTALL_COMMAND}
         BUILD_IN_SOURCE 1
     )
     
     # Set variables for the built protobuf
     set(PROTOBUF_FOUND TRUE)
     set(PROTOBUF_INCLUDE_DIRS ${PROTOBUF_PREFIX}/install/include)
-    set(PROTOBUF_LIBRARIES ${PROTOBUF_PREFIX}/install/lib/libprotobuf.a)
-    set(PROTOBUF_PROTOC_EXECUTABLE ${PROTOBUF_PREFIX}/install/bin/protoc)
+    if(WIN32)
+        set(PROTOBUF_LIBRARIES ${PROTOBUF_PREFIX}/install/lib/libprotobuf.a)
+        set(PROTOBUF_PROTOC_EXECUTABLE ${PROTOBUF_PREFIX}/install/bin/protoc.exe)
+    else()
+        set(PROTOBUF_LIBRARIES ${PROTOBUF_PREFIX}/install/lib/libprotobuf.a)
+        set(PROTOBUF_PROTOC_EXECUTABLE ${PROTOBUF_PREFIX}/install/bin/protoc)
+    endif()
     
     # Create imported target for cleaner linking
     add_library(protobuf::libprotobuf STATIC IMPORTED GLOBAL)
