@@ -76,8 +76,27 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
         )
         set(AUTOTOOLS_BUILD_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make -j${CMAKE_BUILD_PARALLEL_LEVEL}")
         set(AUTOTOOLS_INSTALL_COMMAND bash -c "cd ${PROTOBUF_PREFIX}/src/protobuf_external && make install")
+    elseif(APPLE)
+        # On macOS, add flags to suppress deprecated API warnings from protobuf 2.6.1
+        set(AUTOTOOLS_CONFIGURE_COMMAND
+            cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
+            mkdir -p gtest &&
+            touch gtest/CMakeLists.txt &&
+            autoreconf -f -i -Wall,no-obsolete &&
+            ./configure 
+                --prefix=${PROTOBUF_PREFIX}/install
+                --enable-static
+                --disable-shared
+                --disable-dependency-tracking
+                CXX=${CMAKE_CXX_COMPILER}
+                CC=${CMAKE_C_COMPILER}
+                CXXFLAGS="-Wno-deprecated-declarations -Wno-error"
+                CFLAGS="-Wno-deprecated-declarations -Wno-error"
+        )
+        set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL})
+        set(AUTOTOOLS_INSTALL_COMMAND make install)
     else()
-        # On Unix systems, use standard shell commands
+        # On other Unix systems, use standard shell commands
         set(AUTOTOOLS_CONFIGURE_COMMAND
             cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
             mkdir -p gtest &&
