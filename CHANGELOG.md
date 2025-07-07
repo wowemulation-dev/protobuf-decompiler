@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added missing `<boost/filesystem/directory.hpp>` for directory_iterator support
   - Implemented platform-specific autotools command handling in CMakeLists.txt
   - Added macOS-specific compiler flags to suppress deprecated API warnings in protobuf 2.6.1
+  - Switched Windows builds to use vcpkg protobuf for MSVC compatibility
+  - Simplified build system to avoid autotools/MSVC incompatibility on Windows
 
 ## [1.0.0] - 2023-04-14
 

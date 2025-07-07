@@ -38,34 +38,33 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
 # First, try to find system protobuf and check its version
-find_package(Protobuf QUIET)
-
 set(BUILD_PROTOBUF_FROM_SOURCE FALSE)
-if(Protobuf_FOUND)
-    # Check if the found version is exactly 2.6.1
-    if(Protobuf_VERSION)
-        if(Protobuf_VERSION VERSION_EQUAL "2.6.1")
-            message(STATUS "Found system protobuf version 2.6.1 - using it")
-        elseif(WIN32)
-            # On Windows, prefer vcpkg protobuf over building from source due to MSVC compatibility
-            message(STATUS "Found system protobuf version ${Protobuf_VERSION} on Windows - using it for MSVC compatibility")
-        else()
-            message(STATUS "Found system protobuf version ${Protobuf_VERSION}, but need 2.6.1 - will build from source")
-            set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
-        endif()
-    else()
-        if(WIN32)
-            # On Windows, use any found protobuf to avoid MinGW/MSVC compatibility issues
-            message(STATUS "Found system protobuf on Windows - using it for MSVC compatibility")
+
+if(WIN32)
+    # On Windows, always build protobuf 2.6.1 from source to ensure API compatibility
+    message(STATUS "Windows platform detected - will build protobuf 2.6.1 from source")
+    set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
+else()
+    find_package(Protobuf QUIET)
+    
+    if(Protobuf_FOUND)
+        # Check if the found version is exactly 2.6.1
+        if(Protobuf_VERSION)
+            if(Protobuf_VERSION VERSION_EQUAL "2.6.1")
+                message(STATUS "Found system protobuf version 2.6.1 - using it")
+            else()
+                message(STATUS "Found system protobuf version ${Protobuf_VERSION}, but need 2.6.1 - will build from source")
+                set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
+            endif()
         else()
             # Older FindProtobuf modules might not set Protobuf_VERSION
             message(STATUS "Found system protobuf but couldn't determine version - will build from source")
             set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
         endif()
+    else()
+        message(STATUS "System protobuf not found - will build version 2.6.1 from source")
+        set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
     endif()
-else()
-    message(STATUS "System protobuf not found - will build version 2.6.1 from source")
-    set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
 endif()
 
 if(BUILD_PROTOBUF_FROM_SOURCE)
@@ -78,42 +77,43 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
     
     # Configure autotools commands based on platform
     if(WIN32)
-        # On Windows, we need to handle Visual Studio builds differently
-        # Download and extract protobuf first, then build using custom commands
+        # On Windows, download pre-built protobuf 2.6.1 binaries
+        # This avoids the complexity of building with Visual Studio
         ExternalProject_Add(
-            protobuf_download
-            GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
-            GIT_TAG        v2.6.1
-            PREFIX         ${PROTOBUF_PREFIX}
+            protobuf_external
+            URL https://github.com/protocolbuffers/protobuf/releases/download/v2.6.1/protobuf-2.6.1.zip
+            PREFIX ${PROTOBUF_PREFIX}
             CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
+            BUILD_COMMAND 
+                ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects
+                cmd /c extract_includes.bat
+            INSTALL_COMMAND
+                ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/lib &&
+                ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/bin &&
+                ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/include &&
+                ${CMAKE_COMMAND} -E copy_directory 
+                    ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/include 
+                    ${PROTOBUF_PREFIX}/install/include &&
+                ${CMAKE_COMMAND} -E copy_directory
+                    ${PROTOBUF_PREFIX}/src/protobuf_external/src
+                    ${PROTOBUF_PREFIX}/install/src
             BUILD_IN_SOURCE 1
         )
         
-        # Create a custom target for building protobuf on Windows
-        add_custom_target(protobuf_external ALL
-            COMMAND ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects
-                    cmd /c extract_includes.bat
-            COMMAND ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects
+        # Build protobuf libraries after extraction
+        add_custom_command(TARGET protobuf_external POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E chdir ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects
                     msbuild protobuf.sln /p:Configuration=Release /p:Platform=x64
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/lib
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/bin
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${PROTOBUF_PREFIX}/install/include
-            COMMAND ${CMAKE_COMMAND} -E copy_directory 
-                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/include 
-                    ${PROTOBUF_PREFIX}/install/include
-            COMMAND ${CMAKE_COMMAND} -E copy
-                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/x64/Release/libprotobuf.lib
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/libprotobuf.lib
                     ${PROTOBUF_PREFIX}/install/lib/libprotobuf.lib
-            COMMAND ${CMAKE_COMMAND} -E copy
-                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/x64/Release/libprotoc.lib
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/libprotoc.lib
                     ${PROTOBUF_PREFIX}/install/lib/libprotoc.lib
-            COMMAND ${CMAKE_COMMAND} -E copy
-                    ${PROTOBUF_PREFIX}/src/protobuf_download/vsprojects/x64/Release/protoc.exe
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${PROTOBUF_PREFIX}/src/protobuf_external/vsprojects/x64/Release/protoc.exe
                     ${PROTOBUF_PREFIX}/install/bin/protoc.exe
-            DEPENDS protobuf_download
-            COMMENT "Building protobuf for Windows using Visual Studio"
+            COMMENT "Building protobuf libraries with MSBuild"
         )
     elseif(APPLE)
         # On macOS, add flags to suppress deprecated API warnings from protobuf 2.6.1
