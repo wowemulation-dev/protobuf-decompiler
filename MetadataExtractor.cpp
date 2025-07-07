@@ -1,4 +1,5 @@
 #include "MetadataExtractor.h"
+#include <algorithm>
 
 MetadataExtractor::Metadata const* MetadataExtractor::GetById(std::string const& id) const
 {

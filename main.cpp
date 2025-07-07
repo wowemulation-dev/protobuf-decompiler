@@ -5,6 +5,7 @@
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <boost/filesystem/operations.hpp>
+#include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
@@ -20,21 +21,69 @@ google::protobuf::DynamicMessageFactory* dynamicMessageFactory = new google::pro
 
 int main(int argc, char* argv[])
 {
+    namespace po = boost::program_options;
+
+    // Define command line options
+    po::options_description desc("protobuf-decompiler: Reconstructs .proto files from protobuf descriptors\n\nOptions");
+    desc.add_options()
+        ("help,h", "Show this help message")
+        ("binary", po::value<std::string>(), "Path to binary file containing protobuf descriptors")
+        ("directory", po::value<std::string>()->default_value("."), "Directory to scan for .protoc files (when no binary is specified)")
+    ;
+
+    // Positional argument for binary path (for backward compatibility)
+    po::positional_options_description p;
+    p.add("binary", 1);
+
+    po::variables_map vm;
+    try {
+        po::store(po::command_line_parser(argc, argv).
+                  options(desc).positional(p).run(), vm);
+        po::notify(vm);
+    }
+    catch (const po::error& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "\nUse --help for usage information." << std::endl;
+        return 1;
+    }
+
+    // Show help
+    if (vm.count("help")) {
+        std::cout << desc << "\n\n";
+        std::cout << "Usage:\n";
+        std::cout << "  " << argv[0] << " [options] [binary_file]\n";
+        std::cout << "  " << argv[0] << " --binary <path_to_binary>\n";
+        std::cout << "  " << argv[0] << " --directory <path_to_directory>\n\n";
+        std::cout << "Examples:\n";
+        std::cout << "  " << argv[0] << " /path/to/binary       # Extract from binary\n";
+        std::cout << "  " << argv[0] << "                       # Scan current directory for .protoc files\n";
+        std::cout << "  " << argv[0] << " --help                # Show this help\n";
+        return 0;
+    }
+
     // initialize Descriptor descriptors
     google::protobuf::DescriptorProto().GetMetadata();
 
     // first collect files
     std::unique_ptr<MetadataExtractor> extractor;
-    if (argc > 1)
+    if (vm.count("binary"))
     {
         // parse protobuf metadata from binary
+        std::string binaryPath = vm["binary"].as<std::string>();
         extractor = std::make_unique<BinaryMetadataExtractor>();
-        extractor->Parse(argv[1]);
+        try {
+            extractor->Parse(binaryPath);
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 1;
+        }
     }
     else
     {
+        std::string directory = vm["directory"].as<std::string>();
         extractor = std::make_unique<FilesystemMetadataExtractor>();
-        extractor->Parse(boost::filesystem::current_path());
+        extractor->Parse(boost::filesystem::path(directory));
     }
 
     if (extractor->GetMetadata().empty())

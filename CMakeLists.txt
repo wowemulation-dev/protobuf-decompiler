@@ -1,24 +1,181 @@
-cmake_minimum_required(VERSION 3.0)
-project(protobuf_decompiler)
+cmake_minimum_required(VERSION 3.28)
 
-find_package(Protobuf)
+# Set policy for FindBoost module
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD)
+endif()
 
-set(Boost_USE_STATIC_LIBS        ON)
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME     OFF)
-find_package(Boost 1.51 REQUIRED filesystem system)
+project(protobuf_decompiler
+    VERSION 1.0.0
+    DESCRIPTION "Reconstructs .proto files from Google protobuf reflection strings"
+    LANGUAGES CXX)
 
-include_directories(${PROTOBUF_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set default build type if not specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
+# Enable useful warnings
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wall -Wextra -Wpedantic)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options(/W4)
+endif()
+
+# Include GNUInstallDirs for standard install paths
+include(GNUInstallDirs)
+include(ExternalProject)
+
+# Configure Boost to use static libraries (must be set before find_package)
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
+# First, try to find system protobuf and check its version
+find_package(Protobuf QUIET)
+
+set(BUILD_PROTOBUF_FROM_SOURCE FALSE)
+if(Protobuf_FOUND)
+    # Check if the found version is exactly 2.6.1
+    if(Protobuf_VERSION)
+        if(Protobuf_VERSION VERSION_EQUAL "2.6.1")
+            message(STATUS "Found system protobuf version 2.6.1 - using it")
+        else()
+            message(STATUS "Found system protobuf version ${Protobuf_VERSION}, but need 2.6.1 - will build from source")
+            set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
+        endif()
+    else()
+        # Older FindProtobuf modules might not set Protobuf_VERSION
+        message(STATUS "Found system protobuf but couldn't determine version - will build from source")
+        set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
+    endif()
+else()
+    message(STATUS "System protobuf not found - will build version 2.6.1 from source")
+    set(BUILD_PROTOBUF_FROM_SOURCE TRUE)
+endif()
+
+if(BUILD_PROTOBUF_FROM_SOURCE)
+    message(STATUS "Building protobuf v2.6.1 from source (this may take a while on first build)")
+    message(STATUS "Note: This requires autotools (autoconf, automake, libtool)")
+    
+    # Build protobuf v2.6.1 using ExternalProject
+    # Note: protobuf 2.6.1 uses autotools, not CMake
+    set(PROTOBUF_PREFIX ${CMAKE_BINARY_DIR}/protobuf-2.6.1)
+    
+    ExternalProject_Add(
+        protobuf_external
+        GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+        GIT_TAG        v2.6.1
+        PREFIX         ${PROTOBUF_PREFIX}
+        CONFIGURE_COMMAND 
+            cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
+            mkdir -p gtest &&
+            touch gtest/CMakeLists.txt &&
+            autoreconf -f -i -Wall,no-obsolete &&
+            ./configure 
+                --prefix=${PROTOBUF_PREFIX}/install
+                --enable-static
+                --disable-shared
+                --disable-dependency-tracking
+                CXX=${CMAKE_CXX_COMPILER}
+                CC=${CMAKE_C_COMPILER}
+        BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL}
+        INSTALL_COMMAND make install
+        BUILD_IN_SOURCE 1
+    )
+    
+    # Set variables for the built protobuf
+    set(PROTOBUF_FOUND TRUE)
+    set(PROTOBUF_INCLUDE_DIRS ${PROTOBUF_PREFIX}/install/include)
+    set(PROTOBUF_LIBRARIES ${PROTOBUF_PREFIX}/install/lib/libprotobuf.a)
+    set(PROTOBUF_PROTOC_EXECUTABLE ${PROTOBUF_PREFIX}/install/bin/protoc)
+    
+    # Create imported target for cleaner linking
+    add_library(protobuf::libprotobuf STATIC IMPORTED GLOBAL)
+    set_target_properties(protobuf::libprotobuf PROPERTIES
+        IMPORTED_LOCATION ${PROTOBUF_LIBRARIES}
+    )
+    add_dependencies(protobuf::libprotobuf protobuf_external)
+endif()
+
+# Find Boost
+find_package(Boost 1.51 REQUIRED COMPONENTS filesystem system program_options)
+
+# Create executable target
 add_executable(protobuf_decompiler
-  main.cpp
-  MetadataExtractor.cpp
-  MetadataExtractor.h
-  FilesystemMetadataExtractor.cpp
-  FilesystemMetadataExtractor.h
-  BinaryMetadataExtractor.cpp
-  BinaryMetadataExtractor.h)
+    main.cpp
+    MetadataExtractor.cpp
+    MetadataExtractor.h
+    FilesystemMetadataExtractor.cpp
+    FilesystemMetadataExtractor.h
+    BinaryMetadataExtractor.cpp
+    BinaryMetadataExtractor.h)
 
-target_link_libraries(protobuf_decompiler ${PROTOBUF_LIBRARIES} ${Boost_LIBRARIES})
+# Set target properties
+target_compile_features(protobuf_decompiler PRIVATE cxx_std_17)
 
-install(TARGETS protobuf_decompiler RUNTIME DESTINATION bin)
+# Link libraries using modern CMake
+if(BUILD_PROTOBUF_FROM_SOURCE)
+    target_link_libraries(protobuf_decompiler
+        PRIVATE
+            protobuf::libprotobuf
+            Boost::filesystem
+            Boost::system
+            Boost::program_options)
+    # Add include directories for built protobuf
+    target_include_directories(protobuf_decompiler
+        PRIVATE
+            ${PROTOBUF_INCLUDE_DIRS})
+    # Add dependency to ensure protobuf is built first
+    add_dependencies(protobuf_decompiler protobuf_external)
+else()
+    # Use system protobuf
+    target_link_libraries(protobuf_decompiler
+        PRIVATE
+            ${PROTOBUF_LIBRARIES}
+            Boost::filesystem
+            Boost::system
+            Boost::program_options)
+    target_include_directories(protobuf_decompiler
+        PRIVATE
+            ${PROTOBUF_INCLUDE_DIRS})
+endif()
+
+# Add project source directory to includes
+target_include_directories(protobuf_decompiler
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Set output directories
+set_target_properties(protobuf_decompiler PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin")
+
+# Add RPATH handling for installed binaries
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# Installation
+install(TARGETS protobuf_decompiler
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Export compile commands for better IDE support
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Add a custom target to format code (optional, requires clang-format)
+find_program(CLANG_FORMAT clang-format)
+if(CLANG_FORMAT)
+    file(GLOB_RECURSE ALL_SOURCE_FILES *.cpp *.h)
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT} -i ${ALL_SOURCE_FILES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Running clang-format on all source files")
+endif()
