@@ -37,6 +37,9 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
+# Always use CMake-based build for protobuf 2.6.1
+# This eliminates the need for autotools on all platforms
+
 # First, try to find system protobuf and check its version
 set(BUILD_PROTOBUF_FROM_SOURCE FALSE)
 
@@ -68,8 +71,7 @@ else()
 endif()
 
 if(BUILD_PROTOBUF_FROM_SOURCE)
-    message(STATUS "Building protobuf v2.6.1 from source (this may take a while on first build)")
-    message(STATUS "Note: This requires autotools (autoconf, automake, libtool)")
+    message(STATUS "Building protobuf v2.6.1 from source using CMake (this may take a while on first build)")
     
     # Build protobuf v2.6.1 using ExternalProject
     # Note: protobuf 2.6.1 uses autotools, not CMake
@@ -115,60 +117,30 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
                     ${PROTOBUF_PREFIX}/install/bin/protoc.exe
             COMMENT "Building protobuf libraries with MSBuild"
         )
-    elseif(APPLE)
-        # On macOS, add flags to suppress deprecated API warnings from protobuf 2.6.1
-        set(AUTOTOOLS_CONFIGURE_COMMAND
-            cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
-            mkdir -p gtest &&
-            touch gtest/CMakeLists.txt &&
-            autoreconf -f -i -Wall,no-obsolete &&
-            ./configure 
-                --prefix=${PROTOBUF_PREFIX}/install
-                --enable-static
-                --disable-shared
-                --disable-dependency-tracking
-        )
-        # Use environment variables to pass compiler flags for the build step
-        set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL} CXXFLAGS="-Wno-deprecated-declarations" CFLAGS="-Wno-deprecated-declarations")
-        set(AUTOTOOLS_INSTALL_COMMAND make install)
-        
-        ExternalProject_Add(
-            protobuf_external
-            GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
-            GIT_TAG        v2.6.1
-            PREFIX         ${PROTOBUF_PREFIX}
-            CONFIGURE_COMMAND ${AUTOTOOLS_CONFIGURE_COMMAND}
-            BUILD_COMMAND ${AUTOTOOLS_BUILD_COMMAND}
-            INSTALL_COMMAND ${AUTOTOOLS_INSTALL_COMMAND}
-            BUILD_IN_SOURCE 1
-        )
     else()
-        # On other Unix systems, use standard shell commands
-        set(AUTOTOOLS_CONFIGURE_COMMAND
-            cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
-            mkdir -p gtest &&
-            touch gtest/CMakeLists.txt &&
-            autoreconf -f -i -Wall,no-obsolete &&
-            ./configure 
-                --prefix=${PROTOBUF_PREFIX}/install
-                --enable-static
-                --disable-shared
-                --disable-dependency-tracking
-                CXX=${CMAKE_CXX_COMPILER}
-                CC=${CMAKE_C_COMPILER}
-        )
-        set(AUTOTOOLS_BUILD_COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL})
-        set(AUTOTOOLS_INSTALL_COMMAND make install)
-        
+        # On Unix systems (Linux, macOS), use CMake
         ExternalProject_Add(
             protobuf_external
             GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
             GIT_TAG        v2.6.1
             PREFIX         ${PROTOBUF_PREFIX}
-            CONFIGURE_COMMAND ${AUTOTOOLS_CONFIGURE_COMMAND}
-            BUILD_COMMAND ${AUTOTOOLS_BUILD_COMMAND}
-            INSTALL_COMMAND ${AUTOTOOLS_INSTALL_COMMAND}
-            BUILD_IN_SOURCE 1
+            # Apply our CMake patch after download
+            PATCH_COMMAND
+                ${CMAKE_COMMAND} -E copy_directory 
+                    ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build/protobuf-2.6.1-cmake/
+                    ${PROTOBUF_PREFIX}/src/protobuf_external/ &&
+                cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
+                patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build/protobuf-2.6.1-cmake/patches/add-va-copy-fix.patch
+            # Now we can use CMake to build
+            CMAKE_ARGS
+                -DCMAKE_INSTALL_PREFIX=${PROTOBUF_PREFIX}/install
+                -DCMAKE_BUILD_TYPE=Release
+                -DBUILD_SHARED_LIBS=OFF
+                -DBUILD_TESTING=OFF
+                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
         )
     endif()
     

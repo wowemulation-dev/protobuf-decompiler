@@ -32,9 +32,6 @@ compiled into World of Warcraft game client binaries.
 - **C++17** compatible compiler (GCC, Clang, or MSVC)
 - **Boost** (≥ 1.51) - components: filesystem, system, program_options
 
-**Optional (for building protobuf from source):**
-
-- **autotools** (autoconf, automake, libtool) - only needed if system protobuf ≠ 2.6.1
 
 ### Building
 
