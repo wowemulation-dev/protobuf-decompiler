@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
         ("help,h", "Show this help message")
         ("binary", po::value<std::string>(), "Path to binary file containing protobuf descriptors")
         ("directory", po::value<std::string>()->default_value("."), "Directory to scan for .protoc files (when no binary is specified)")
+        ("output,o", po::value<std::string>()->default_value("."), "Output directory for extracted .proto files")
     ;
 
     // Positional argument for binary path (for backward compatibility)
@@ -53,12 +54,13 @@ int main(int argc, char* argv[])
         std::cout << desc << "\n\n";
         std::cout << "Usage:\n";
         std::cout << "  " << argv[0] << " [options] [binary_file]\n";
-        std::cout << "  " << argv[0] << " --binary <path_to_binary>\n";
-        std::cout << "  " << argv[0] << " --directory <path_to_directory>\n\n";
+        std::cout << "  " << argv[0] << " --binary <path_to_binary> [--output <output_dir>]\n";
+        std::cout << "  " << argv[0] << " --directory <path_to_directory> [--output <output_dir>]\n\n";
         std::cout << "Examples:\n";
-        std::cout << "  " << argv[0] << " /path/to/binary       # Extract from binary\n";
-        std::cout << "  " << argv[0] << "                       # Scan current directory for .protoc files\n";
-        std::cout << "  " << argv[0] << " --help                # Show this help\n";
+        std::cout << "  " << argv[0] << " /path/to/binary                      # Extract to current directory\n";
+        std::cout << "  " << argv[0] << " /path/to/binary -o /path/to/output   # Extract to specific directory\n";
+        std::cout << "  " << argv[0] << "                                      # Scan current directory for .protoc files\n";
+        std::cout << "  " << argv[0] << " --help                               # Show this help\n";
         return 0;
     }
 
@@ -89,7 +91,17 @@ int main(int argc, char* argv[])
 
     if (extractor->GetMetadata().empty())
     {
-        std::cout << "No .proto descriptors found" << std::endl;
+        if (vm.count("binary"))
+        {
+            std::cout << "No .proto descriptors found in binary: " << vm["binary"].as<std::string>() << std::endl;
+        }
+        else
+        {
+            std::string directory = vm["directory"].as<std::string>();
+            std::cout << "No .protoc files found in directory: " << boost::filesystem::absolute(directory) << std::endl;
+            std::cout << std::endl;
+            std::cout << "To extract from a binary, use: " << argv[0] << " --binary <path_to_binary>" << std::endl;
+        }
         return 1;
     }
 
@@ -191,6 +203,36 @@ int main(int argc, char* argv[])
         }
     }
 
+    // Get output directory
+    boost::filesystem::path outputDir(vm["output"].as<std::string>());
+    try {
+        if (!boost::filesystem::exists(outputDir))
+        {
+            boost::filesystem::create_directories(outputDir);
+        }
+        else if (!boost::filesystem::is_directory(outputDir))
+        {
+            std::cerr << "Error: Output path exists but is not a directory: " << outputDir << std::endl;
+            return 1;
+        }
+        
+        // Test if directory is writable by creating a temporary file
+        boost::filesystem::path testFile = outputDir / ".protobuf_decompiler_test";
+        std::ofstream test(testFile.string());
+        if (!test.good())
+        {
+            std::cerr << "Error: Output directory is not writable: " << outputDir << std::endl;
+            return 1;
+        }
+        test.close();
+        boost::filesystem::remove(testFile);
+    }
+    catch (const boost::filesystem::filesystem_error& e)
+    {
+        std::cerr << "Error: Failed to create output directory: " << e.what() << std::endl;
+        return 1;
+    }
+
     // and finally rebuild all protos in a new pool with fully resolved dependencies and extensions
     google::protobuf::DescriptorPool* pool2 = new google::protobuf::DescriptorPool();
     for (std::string const& fileName : parsedSorted)
@@ -209,10 +251,11 @@ int main(int argc, char* argv[])
             fileDescProto.mutable_options()->set_optimize_for(google::protobuf::FileOptions_OptimizeMode_SPEED);
             if (google::protobuf::FileDescriptor const* fileDesc = pool2->BuildFile(fileDescProto))
             {
-                boost::filesystem::path parentPath = boost::filesystem::path(fileDesc->name()).parent_path();
+                boost::filesystem::path outputPath = outputDir / fileDesc->name();
+                boost::filesystem::path parentPath = outputPath.parent_path();
                 if (!parentPath.empty())
                     boost::filesystem::create_directories(parentPath);
-                std::ofstream f(fileDesc->name());
+                std::ofstream f(outputPath.string());
                 f << fileDesc->DebugString() << std::endl;
                 f.close();
             }

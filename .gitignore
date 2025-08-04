@@ -1,2 +1,8 @@
-*.kdev4*
-build
+# protobuf files
+bgs/
+google/
+
+# build files
+build/
+install/
+.cache/

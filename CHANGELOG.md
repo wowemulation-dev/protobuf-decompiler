@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- GitHub Actions workflow for automated multi-platform builds (Ubuntu, Windows, macOS) with proper dependency management and artifact generation
+- GitHub Actions workflow for automated multi-platform builds (Ubuntu, Windows, macOS) with dependency management and artifact generation
 - World of Warcraft-specific documentation with supported version information (6.0.2+ retail, 1.13.2+ Classic)
 - README.md with project description, build instructions, usage examples, and system requirements
 - MIT license badge
@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `--binary` option for specifying binary file path
   - Added `--directory` option for specifying directory to scan
   - Error handling for invalid command-line arguments
+- CMake Presets support for modern build workflows
+  - Added CMakePresets.json with debug/release configurations
+  - Platform-specific presets for GCC, Clang, and MSVC
+  - CI-specific presets for GitHub Actions
+  - Updated documentation with preset usage instructions
 
 ### Changed
 - LICENSE file converted to markdown format (LICENSE.md)
@@ -45,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Temporarily disabled Windows builds in GitHub Actions due to protobuf 2.6.1 compatibility issues
   - Modern vcpkg protobuf has incompatible API changes
-  - Building protobuf 2.6.1 from source on Windows requires complex Visual Studio setup
+  - Building protobuf 2.6.1 from source on Windows requires Visual Studio setup
 
 ## [1.0.0] - 2023-04-14
 

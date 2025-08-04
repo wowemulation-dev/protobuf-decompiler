@@ -42,52 +42,56 @@ jobs:
       run: |
         brew install cmake boost autoconf automake libtool
 
-    - name: Create build directory
-      run: mkdir build
-
-    - name: Configure CMake (Unix)
-      if: matrix.os != 'windows-latest'
-      working-directory: build
+    - name: Configure CMake
+      if: matrix.os == 'ubuntu-latest'
       env:
         CMAKE_BUILD_PARALLEL_LEVEL: 2
-      run: cmake -G "${{ matrix.cmake_generator }}" ..
+      run: cmake --preset ci-linux
+
+    - name: Configure CMake
+      if: matrix.os == 'macos-latest'
+      env:
+        CMAKE_BUILD_PARALLEL_LEVEL: 2
+      run: cmake --preset ci-macos
 
     - name: Configure CMake (Windows)
       if: matrix.os == 'windows-latest'
-      working-directory: build
       shell: cmd
       env:
         CMAKE_BUILD_PARALLEL_LEVEL: 2
       run: |
-        cmake -G "${{ matrix.cmake_generator }}" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ..
+        cmake --preset ci-windows -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
-    - name: Build (Unix)
-      if: matrix.os != 'windows-latest'
-      working-directory: build
-      run: |
-        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-          make -j$(sysctl -n hw.ncpu)
-        else
-          make -j$(nproc)
-        fi
+    - name: Build
+      if: matrix.os == 'ubuntu-latest'
+      run: cmake --build --preset ci-linux
+
+    - name: Build
+      if: matrix.os == 'macos-latest'
+      run: cmake --build --preset ci-macos
 
     - name: Build (Windows)
       if: matrix.os == 'windows-latest'
-      working-directory: build
       shell: cmd
-      run: |
-        cmake --build . --config Release
+      run: cmake --build --preset ci-windows
 
-    - name: Upload artifacts (Unix)
-      if: matrix.os != 'windows-latest'
+    - name: Upload artifacts (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
       with:
         name: protobuf-decompiler-${{ matrix.os }}
-        path: build/bin/protobuf_decompiler
+        path: build/ci-linux/bin/protobuf_decompiler
+
+    - name: Upload artifacts (macOS)
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: protobuf-decompiler-${{ matrix.os }}
+        path: build/ci-macos/bin/protobuf_decompiler
 
     - name: Upload artifacts (Windows)
       if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
       with:
         name: protobuf-decompiler-${{ matrix.os }}
-        path: build/bin/Release/protobuf_decompiler.exe
+        path: build/ci-windows/bin/Release/protobuf_decompiler.exe

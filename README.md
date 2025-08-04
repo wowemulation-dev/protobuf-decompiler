@@ -14,7 +14,7 @@ compiled into World of Warcraft game client binaries.
 - **WoW Retail**: 6.0.2 (Warlords of Draenor) through current retail releases
 - **WoW Classic**: 1.13.2 through current Classic releases
 
-## ✨ Features
+## Features
 
 - **WoW Client Analysis**: Extracts protobuf descriptors from WoW game client binaries
 - **Schema Reconstruction**: Rebuilds `.proto` files with structure and dependencies
@@ -22,7 +22,7 @@ compiled into World of Warcraft game client binaries.
 - **C++17**: Built with C++17 and CMake
 - **Command-Line Interface**: CLI with options for different input methods
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -37,6 +37,29 @@ compiled into World of Warcraft game client binaries.
 - **autotools** (autoconf, automake, libtool) - only needed if system protobuf ≠ 2.6.1
 
 ### Building
+
+#### Using CMake Presets (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/danielsreichenbach/protobuf-decompiler.git
+cd protobuf-decompiler
+
+# List available presets
+cmake --list-presets
+
+# Configure and build with a preset (e.g., release build with GCC)
+cmake --preset gcc-release
+cmake --build --preset gcc-release
+
+# Or for debug builds
+cmake --preset gcc-debug
+cmake --build --preset gcc-debug
+
+# The binary will be in build/<preset-name>/bin/
+```
+
+#### Traditional CMake Build
 
 ```bash
 # Clone the repository
@@ -86,7 +109,7 @@ The build system automatically:
 ./protobuf_decompiler --directory ./extracted_files/
 ```
 
-## 📖 How It Works
+## How It Works
 
 1. **Binary Scanning**: Searches WoW client executable for embedded protobuf descriptors
 2. **Metadata Extraction**: Parses protobuf reflection metadata using internal APIs
@@ -100,7 +123,7 @@ The tool uses:
 - Two-pass dependency resolution for schemas
 - Directory structure preservation for output
 
-## 🔧 Build Options
+## Build Options
 
 ```bash
 # Debug build with symbols
@@ -116,26 +139,26 @@ cmake -G Ninja .. && ninja
 make format
 ```
 
-## 📋 System Requirements
+## System Requirements
 
 - **Operating System**: Windows, Linux, macOS
 - **Architecture**: x86_64, ARM64
-- **Memory**: 512MB RAM minimum
+- **Memory**: 512MB RAM
 - **Disk Space**: 100MB for build artifacts
 
-## 🤝 Contributing
+## Contributing
 
 Submit issues, feature requests, or pull requests.
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE.md).
 
-## ⚠️ Important Notes
+## Important Notes
 
 - This tool requires **exactly** protobuf version 2.6.1 for compatibility
 - Designed specifically for modern World of Warcraft client analysis
   (supported versions: 6.0.2+ retail, 1.13.2+ Classic)
 - Contains intentional memory management choices to avoid protobuf double-free issues
-- Uses advanced pointer arithmetic for accessing protobuf internal structures
+- Uses pointer arithmetic for accessing protobuf internal structures
 - Output maintains original directory structure when possible
