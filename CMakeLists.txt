@@ -118,6 +118,28 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
             COMMENT "Building protobuf libraries with MSBuild"
         )
     else()
+        # Build list of CMAKE_ARGS conditionally
+        set(PROTOBUF_CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX=${PROTOBUF_PREFIX}/install
+            -DCMAKE_BUILD_TYPE=Release
+            -DBUILD_SHARED_LIBS=OFF
+            -DBUILD_TESTING=OFF
+        )
+        
+        # Only pass compiler variables if they are defined
+        if(DEFINED CMAKE_CXX_COMPILER AND NOT CMAKE_CXX_COMPILER STREQUAL "")
+            list(APPEND PROTOBUF_CMAKE_ARGS "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+        endif()
+        if(DEFINED CMAKE_C_COMPILER AND NOT CMAKE_C_COMPILER STREQUAL "")
+            list(APPEND PROTOBUF_CMAKE_ARGS "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
+        endif()
+        if(DEFINED CMAKE_CXX_FLAGS AND NOT CMAKE_CXX_FLAGS STREQUAL "")
+            list(APPEND PROTOBUF_CMAKE_ARGS "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+        endif()
+        if(DEFINED CMAKE_C_FLAGS AND NOT CMAKE_C_FLAGS STREQUAL "")
+            list(APPEND PROTOBUF_CMAKE_ARGS "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+        endif()
+
         # On Unix systems (Linux, macOS), use CMake
         ExternalProject_Add(
             protobuf_external
@@ -132,15 +154,7 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
                 cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
                 patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build/protobuf-2.6.1-cmake/patches/add-va-copy-fix.patch
             # Now we can use CMake to build
-            CMAKE_ARGS
-                -DCMAKE_INSTALL_PREFIX=${PROTOBUF_PREFIX}/install
-                -DCMAKE_BUILD_TYPE=Release
-                -DBUILD_SHARED_LIBS=OFF
-                -DBUILD_TESTING=OFF
-                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-                -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+            CMAKE_ARGS ${PROTOBUF_CMAKE_ARGS}
         )
     endif()
     
