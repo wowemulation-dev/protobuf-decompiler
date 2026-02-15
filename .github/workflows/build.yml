@@ -28,15 +28,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y cmake build-essential libboost-filesystem-dev libboost-system-dev libboost-program-options-dev autoconf automake libtool
 
-    - name: Install dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        # Setup vcpkg
-        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
-        C:\vcpkg\bootstrap-vcpkg.bat
-        C:\vcpkg\vcpkg integrate install
-        C:\vcpkg\vcpkg install boost-filesystem:x64-windows boost-system:x64-windows boost-program-options:x64-windows
-
     - name: Install dependencies (macOS)
       if: matrix.os == 'macos-latest'
       run: |
@@ -54,14 +45,6 @@ jobs:
         CMAKE_BUILD_PARALLEL_LEVEL: 2
       run: cmake --preset ci-macos
 
-    - name: Configure CMake (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-      env:
-        CMAKE_BUILD_PARALLEL_LEVEL: 2
-      run: |
-        cmake --preset ci-windows -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-
     - name: Build
       if: matrix.os == 'ubuntu-latest'
       run: cmake --build --preset ci-linux
@@ -69,11 +52,6 @@ jobs:
     - name: Build
       if: matrix.os == 'macos-latest'
       run: cmake --build --preset ci-macos
-
-    - name: Build (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-      run: cmake --build --preset ci-windows
 
     - name: Upload artifacts (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
@@ -88,10 +66,3 @@ jobs:
       with:
         name: protobuf-decompiler-${{ matrix.os }}
         path: build/ci-macos/bin/protobuf_decompiler
-
-    - name: Upload artifacts (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: protobuf-decompiler-${{ matrix.os }}
-        path: build/ci-windows/bin/Release/protobuf_decompiler.exe

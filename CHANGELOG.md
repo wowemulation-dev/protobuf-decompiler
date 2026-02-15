@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - World of Warcraft-specific documentation with supported version information (6.0.2+ retail, 1.13.2+ Classic)
 - README.md with project description, build instructions, usage examples, and system requirements
 - MIT license badge
-- Markdown linting configuration (.markdownlint.yaml)
+- Markdown linting configuration (.markdownlint-cli2.jsonc, .markdownlint.jsonc)
 - Command-line help feature using Boost.Program_options
   - Added `--help` / `-h` option to display usage information
   - Added `--binary` option for specifying binary file path
@@ -46,11 +46,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented platform-specific autotools command handling in CMakeLists.txt
   - Added macOS-specific compiler flags to suppress deprecated API warnings in protobuf 2.6.1
 - Stabilized GitHub Actions CI/CD pipeline for Ubuntu and macOS platforms
+- Resolved compiler detection issues for CMake presets
 
 ### Removed
-- Temporarily disabled Windows builds in GitHub Actions due to protobuf 2.6.1 compatibility issues
-  - Modern vcpkg protobuf has incompatible API changes
-  - Building protobuf 2.6.1 from source on Windows requires Visual Studio setup
+- Windows builds not supported in CI due to protobuf 2.6.1 compatibility requirements
+  - vcpkg protobuf versions have incompatible API changes
+  - protobuf 2.6.1 source build on Windows requires complex Visual Studio configuration
 
 ## [1.0.0] - 2023-04-14
 

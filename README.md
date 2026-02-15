@@ -1,7 +1,6 @@
-# World of Warcraft Protocol Buffer Decompiler
+# protobuf-decompiler
 
-Reconstructs `.proto` files from Google Protocol Buffers reflection metadata
-compiled into World of Warcraft game client binaries.
+Reconstructs `.proto` files from Google Protocol Buffers reflection metadata compiled into binaries. Designed for World of Warcraft client analysis.
 
 <div align="center">
 
@@ -16,11 +15,10 @@ compiled into World of Warcraft game client binaries.
 
 ## Features
 
-- **WoW Client Analysis**: Extracts protobuf descriptors from WoW game client binaries
-- **Schema Reconstruction**: Rebuilds `.proto` files with structure and dependencies
-- **Cross-Platform**: Works on Windows, Linux, and macOS
-- **C++17**: Built with C++17 and CMake
-- **Command-Line Interface**: CLI with options for different input methods
+- Extracts protobuf descriptors from binary files
+- Reconstructs `.proto` files with original structure and dependencies
+- Supports Linux and macOS platforms
+- Command-line interface with multiple input methods
 
 ## Quick Start
 
@@ -29,7 +27,7 @@ compiled into World of Warcraft game client binaries.
 **Required:**
 
 - **CMake** (≥ 3.28)
-- **C++17** compatible compiler (GCC, Clang, or MSVC)
+- **C++17** compatible compiler (GCC or Clang)
 - **Boost** (≥ 1.51) - components: filesystem, system, program_options
 
 
@@ -39,7 +37,7 @@ compiled into World of Warcraft game client binaries.
 
 ```bash
 # Clone the repository
-git clone https://github.com/danielsreichenbach/protobuf-decompiler.git
+git clone https://github.com/wowemulation-dev/protobuf-decompiler.git
 cd protobuf-decompiler
 
 # List available presets
@@ -53,14 +51,14 @@ cmake --build --preset gcc-release
 cmake --preset gcc-debug
 cmake --build --preset gcc-debug
 
-# The binary will be in build/<preset-name>/bin/
+# The binary will be in build/<preset-name>/bin/protobuf_decompiler
 ```
 
 #### Traditional CMake Build
 
 ```bash
 # Clone the repository
-git clone https://github.com/danielsreichenbach/protobuf-decompiler.git
+git clone https://github.com/wowemulation-dev/protobuf-decompiler.git
 cd protobuf-decompiler
 
 # Create build directory and configure
@@ -83,11 +81,14 @@ The build system automatically:
 ### Usage
 
 ```bash
-# Extract protobuf schemas from WoW client binary
-./protobuf_decompiler /path/to/Wow.exe
+# Extract protobuf schemas from binary file
+./protobuf_decompiler --binary /path/to/binary
 
-# Scan current directory for .protoc files (legacy mode)
-./protobuf_decompiler
+# Scan directory for .protoc files
+./protobuf_decompiler --directory /path/to/directory
+
+# Specify output directory
+./protobuf_decompiler --binary /path/to/binary --output /path/to/output
 
 # Show help and options
 ./protobuf_decompiler --help
@@ -96,29 +97,29 @@ The build system automatically:
 **Examples:**
 
 ```bash
-# Analyze WoW client on Windows
-./protobuf_decompiler "C:/Program Files (x86)/World of Warcraft/Wow.exe"
+# Analyze binary file
+./protobuf_decompiler --binary "/path/to/binary"
 
-# Analyze WoW client on macOS
-./protobuf_decompiler "/Applications/World of Warcraft/World of Warcraft.app/Contents/MacOS/World of Warcraft"
+# Legacy positional argument (backward compatibility)
+./protobuf_decompiler /path/to/binary
 
-# Legacy mode with .protoc files
+# Scan directory for .protoc files
 ./protobuf_decompiler --directory ./extracted_files/
 ```
 
 ## How It Works
 
-1. **Binary Scanning**: Searches WoW client executable for embedded protobuf descriptors
-2. **Metadata Extraction**: Parses protobuf reflection metadata using internal APIs
-3. **Dependency Resolution**: Resolves cross-references between message types and imports
-4. **Schema Reconstruction**: Generates `.proto` files
+1. Searches executable files for embedded protobuf descriptors
+2. Parses protobuf reflection metadata using internal APIs
+3. Resolves dependencies between message types and imports
+4. Generates `.proto` files maintaining original structure
 
-The tool uses:
+Implementation details:
 
 - Direct binary analysis for descriptor extraction
-- Protobuf internal API manipulation for parsing
-- Two-pass dependency resolution for schemas
-- Directory structure preservation for output
+- Two-pass dependency resolution
+- Uses protobuf internal API manipulation
+- Preserves directory structure in output
 
 ## Build Options
 
@@ -132,15 +133,15 @@ CXX=clang++ cmake .. && make -j$(nproc)
 # Use Ninja for faster builds
 cmake -G Ninja .. && ninja
 
-# Format code (if clang-format available)
+# Format code (requires .clang-format in project root)
 make format
 ```
 
 ## System Requirements
 
-- **Operating System**: Windows, Linux, macOS
+- **Operating System**: Linux, macOS
 - **Architecture**: x86_64, ARM64
-- **Memory**: 512MB RAM
+- **Memory**: 512MB RAM minimum
 - **Disk Space**: 100MB for build artifacts
 
 ## Contributing
@@ -153,9 +154,8 @@ This project is licensed under the [MIT License](LICENSE.md).
 
 ## Important Notes
 
-- This tool requires **exactly** protobuf version 2.6.1 for compatibility
-- Designed specifically for modern World of Warcraft client analysis
-  (supported versions: 6.0.2+ retail, 1.13.2+ Classic)
-- Contains intentional memory management choices to avoid protobuf double-free issues
-- Uses pointer arithmetic for accessing protobuf internal structures
-- Output maintains original directory structure when possible
+- Requires protobuf version 2.6.1 for API compatibility
+- Tested with World of Warcraft clients (6.0.2+ retail, 1.13.2+ Classic)
+- Contains intentional memory leaks to avoid protobuf double-free issues
+- Uses pointer arithmetic to access protobuf internal structures
+- Windows builds currently not supported in CI due to protobuf 2.6.1 compatibility requirements
