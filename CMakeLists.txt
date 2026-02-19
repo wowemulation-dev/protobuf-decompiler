@@ -32,8 +32,8 @@ endif()
 include(GNUInstallDirs)
 include(ExternalProject)
 
-# Configure Boost to use static libraries (must be set before find_package)
-set(Boost_USE_STATIC_LIBS ON)
+# Configure Boost linking (must be set before find_package)
+set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 

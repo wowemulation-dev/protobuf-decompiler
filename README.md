@@ -1,6 +1,7 @@
 # protobuf-decompiler
 
-Reconstructs `.proto` files from Google Protocol Buffers reflection metadata compiled into binaries. Designed for World of Warcraft client analysis.
+Reconstructs `.proto` files from Google Protocol Buffers reflection metadata
+compiled into binaries. Designed for World of Warcraft client analysis.
 
 <div align="center">
 
@@ -29,7 +30,6 @@ Reconstructs `.proto` files from Google Protocol Buffers reflection metadata com
 - **CMake** (≥ 3.28)
 - **C++17** compatible compiler (GCC or Clang)
 - **Boost** (≥ 1.51) - components: filesystem, system, program_options
-
 
 ### Building
 
