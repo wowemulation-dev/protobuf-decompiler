@@ -88,7 +88,7 @@ The build system automatically:
 ./protobuf_decompiler --directory /path/to/directory
 
 # Specify output directory
-./protobuf_decompiler --binary /path/to/binary --output /path/to/output
+./protobuf_decompiler --binary /path/to/binary --output ./output/<version-build-os-arch>
 
 # Show help and options
 ./protobuf_decompiler --help
@@ -97,8 +97,11 @@ The build system automatically:
 **Examples:**
 
 ```bash
-# Analyze binary file
-./protobuf_decompiler --binary "/path/to/binary"
+# Extract from WoW Classic binary (output organized by version)
+./protobuf_decompiler --binary /path/to/classic/client/archive/<version-build-os-arch>/Wow.exe --output ./output/<version-build-os-arch>
+
+# Example with actual version
+./protobuf_decompiler --binary ~/Downloads/wow_classic/1.13.2.31650.windows-win64/_classic_/Wow.exe --output ./output/1.13.2.31650.windows-win64
 
 # Legacy positional argument (backward compatibility)
 ./protobuf_decompiler /path/to/binary

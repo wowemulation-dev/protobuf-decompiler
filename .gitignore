@@ -1,8 +1,12 @@
-# protobuf files
-bgs/
-google/
+# Add directories, files, and symbolic links which should not be stored within
+# the repository here.
 
-# build files
-build/
-install/
-.cache/
+# Helper files requiring special attention
+!.gitignore
+!.gitattributes
+
+# Added by cmake
+/build*
+
+# Generated proto files
+/output/
