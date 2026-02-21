@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- EditorConfig configuration (.editorconfig) for consistent coding style across
+  editors and IDEs
+- Git attributes file (.gitattributes) for proper line ending handling
 - GitHub Actions workflow for automated builds (Ubuntu, macOS) with dependency
   management and artifact generation
 - World of Warcraft-specific documentation with supported version information
@@ -30,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Improved .gitignore organization with clearer structure and explicit ignores
+- Updated README examples with version-specific output directory patterns
 - LICENSE file converted to markdown format (LICENSE.md)
 - Upgraded CMake minimum version requirement from 3.0 to 3.28
   - CMake configuration with target-based dependencies
