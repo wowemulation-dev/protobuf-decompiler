@@ -4,7 +4,7 @@
 #include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/io/coded_stream.h>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>

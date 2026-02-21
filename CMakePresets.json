@@ -141,20 +141,17 @@
     {
       "name": "ci-linux",
       "displayName": "CI Linux",
-      "inherits": "gcc-release",
-      "hidden": true
+      "inherits": "gcc-release"
     },
     {
       "name": "ci-macos",
       "displayName": "CI macOS",
-      "inherits": "clang-release",
-      "hidden": true
+      "inherits": "clang-release"
     },
     {
       "name": "ci-windows",
       "displayName": "CI Windows",
-      "inherits": "windows-release",
-      "hidden": true
+      "inherits": "windows-release"
     }
   ],
   "buildPresets": [

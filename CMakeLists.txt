@@ -36,6 +36,10 @@ include(ExternalProject)
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
+# Prevent FindBoost from delegating to Boost's own BoostConfig.cmake, which
+# fails when Boost was built with b2 (e.g. Homebrew) because per-component
+# cmake config files (boost_systemConfig.cmake, etc.) are not installed.
+set(Boost_NO_BOOST_CMAKE ON)
 
 # Always use CMake-based build for protobuf 2.6.1
 # This eliminates the need for autotools on all platforms
@@ -178,7 +182,7 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
 endif()
 
 # Find Boost
-find_package(Boost 1.51 REQUIRED COMPONENTS filesystem system program_options)
+find_package(Boost 1.51 REQUIRED COMPONENTS filesystem program_options)
 
 # Create executable target
 add_executable(protobuf_decompiler
@@ -199,7 +203,6 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
         PRIVATE
             protobuf::libprotobuf
             Boost::filesystem
-            Boost::system
             Boost::program_options)
     # Add include directories for built protobuf
     target_include_directories(protobuf_decompiler
@@ -213,7 +216,6 @@ else()
         PRIVATE
             protobuf::libprotobuf
             Boost::filesystem
-            Boost::system
             Boost::program_options)
 endif()
 

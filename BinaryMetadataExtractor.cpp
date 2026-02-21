@@ -1,5 +1,5 @@
 #include "BinaryMetadataExtractor.h"
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <fstream>
