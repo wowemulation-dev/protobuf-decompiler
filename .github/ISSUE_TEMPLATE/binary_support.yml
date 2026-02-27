@@ -1,0 +1,58 @@
+name: Binary Support
+description: Request support for a new WoW binary or version
+title: "[Binary]: "
+labels: ["enhancement", "binary-support"]
+body:
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have searched existing issues to ensure this isn't a duplicate
+          required: true
+
+  - type: input
+    id: binary-name
+    attributes:
+      label: Binary Name
+      description: The WoW binary executable name
+      placeholder: "e.g., Wow.exe, WowT.exe, WowClassic.exe"
+    validations:
+      required: true
+
+  - type: input
+    id: wow-version
+    attributes:
+      label: WoW Version / Build
+      description: The WoW version and build number
+      placeholder: "e.g., 3.3.5a (12340), 10.2.0 (52148)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe what protobuf structures need decompilation
+    validations:
+      required: true
+
+  - type: textarea
+    id: protobuf-info
+    attributes:
+      label: Protobuf Information
+      description: Any known protobuf structure details from the binary
+      render: text
+      placeholder: |
+        - Known message types
+        - String references
+        - Relevant addresses
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+    validations:
+      required: false

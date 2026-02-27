@@ -1,6 +1,7 @@
 # MIT License
 
 **Copyright (c) 2017 Shauren**
+**Copyright (c) 2025-2026 Daniel S. Reichenbach and WoW Emulation Contributors**
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
