@@ -152,11 +152,11 @@ if(BUILD_PROTOBUF_FROM_SOURCE)
             PREFIX         ${PROTOBUF_PREFIX}
             # Apply our CMake patch after download
             PATCH_COMMAND
-                ${CMAKE_COMMAND} -E copy_directory 
+                ${CMAKE_COMMAND} -E copy_directory
                     ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build/protobuf-2.6.1-cmake/
                     ${PROTOBUF_PREFIX}/src/protobuf_external/ &&
                 cd ${PROTOBUF_PREFIX}/src/protobuf_external &&
-                patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build/protobuf-2.6.1-cmake/patches/add-va-copy-fix.patch
+                patch -p1 --forward < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build/protobuf-2.6.1-cmake/patches/add-va-copy-fix.patch || true
             # Now we can use CMake to build
             CMAKE_ARGS ${PROTOBUF_CMAKE_ARGS}
         )

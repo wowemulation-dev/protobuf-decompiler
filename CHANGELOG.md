@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README.md with project description, build instructions, usage examples, and
   system requirements
 - MIT license badge
-- Markdown linting configuration (.markdownlint-cli2.jsonc, .markdownlint.jsonc)
+- Markdown linting configuration (.markdownlint.jsonc)
 - Command-line help feature using Boost.Program_options
   - Added `--help` / `-h` option to display usage information
   - Added `--binary` option for specifying binary file path
@@ -66,8 +66,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stabilized GitHub Actions CI/CD pipeline for Ubuntu and macOS platforms
 - Resolved compiler detection issues for CMake presets
 
+### Added
+
+- PE section parsing for targeted metadata scanning
+  - `ParsePESections()` reads DOS/PE headers to locate section table
+  - Scans `.rdata`, `.rsrc`, and `.data` sections for descriptor candidates
+- Two-pass descriptor discovery
+  - `FindMetadata()`: bounded backward search for individual `.proto` descriptors
+    with varint-safe decoding and deduplication
+  - `FindFileDescriptorSets()`: scans for consecutive `FileDescriptorProto`
+    entries (≥2 per sequence) in section ranges or full binary
+- Varint decoder safety improvements
+  - `DecodeVarint64` now takes a `bufferSize` parameter and validates bounds
+    on every iteration
+  - Returns `(0, 0)` on overflow or underflow instead of reading past buffer
+- Deduplication of found descriptors via `_foundDescriptorNames` set
+- `.markdownlint-cli2.jsonc` removed (merged into `.markdownlint.jsonc`)
+- `--forward` flag added to patch command in CMakeLists.txt
+- Fixed trailing newline in `add-va-copy-fix.patch`
+- Updated README example path to `battle.net` directory convention
+
+### Changed
+
+- `DecodeVarint64` signature changed from `(char*, size_t*)` to
+  `(char const*, size_t bufferSize, size_t*)`
+- `BinaryMetadata` now stores `uint8_t const*` instead of `uint8_t*`
+- `FindMetadata` uses bounded backward search window (300 bytes) instead of
+  `rfind` from current position
+- `FindMetadata` validates parsed descriptor name against backward-search
+  extracted name to avoid garbled merges from back-to-back descriptors
+- `FindMetadata` uses `ByteSize()` instead of `CurrentPosition()` to determine
+  descriptor length, avoiding over-count in `FileDescriptorSet` containers
+
+### Fixed
+
+- Varint decoder buffer over-read: bounds check on every iteration prevents
+  reading past end of binary (BinaryMetadataExtractor.cpp:82)
+- Integer truncation: descriptor length derived from `ByteSize()` instead of
+  `CurrentPosition()`, avoiding negative lengths for large descriptors
+- Path traversal: descriptor names validated against backward-search extracted
+  names before accepting candidates
+- Missing newline at end of `add-va-copy-fix.patch` file
+
 ### Removed
 
+- `.markdownlint-cli2.jsonc` (merged into `.markdownlint.jsonc`)
 - Windows builds not supported in CI due to protobuf 2.6.1 compatibility
   requirements
   - vcpkg protobuf versions have incompatible API changes

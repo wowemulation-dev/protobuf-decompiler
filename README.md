@@ -101,7 +101,7 @@ The build system automatically:
 ./protobuf_decompiler --binary /path/to/classic/client/archive/<version-build-os-arch>/Wow.exe --output ./output/<version-build-os-arch>
 
 # Example with actual version
-./protobuf_decompiler --binary ~/Downloads/wow_classic/1.13.2.31650.windows-win64/_classic_/Wow.exe --output ./output/1.13.2.31650.windows-win64
+./protobuf_decompiler --binary ~/Downloads/battle.net/wow_classic/1.13.2.31650.windows-win64/_classic_/Wow.exe --output ./output/1.13.2.31650.windows-win64
 
 # Legacy positional argument (backward compatibility)
 ./protobuf_decompiler /path/to/binary
