@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 
-# Set policy for FindBoost module
+# CMP0167 OLD (CMake >= 3.31): FindBoost returns relative paths by default when
+# NEW, which breaks ExternalProject_Add's protobuf include directories. Revisit
+# once all target platforms ship CMake >= 3.31.
 if(POLICY CMP0167)
     cmake_policy(SET CMP0167 OLD)
 endif()
@@ -245,9 +247,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Add a custom target to format code (optional, requires clang-format)
 find_program(CLANG_FORMAT clang-format)
 if(CLANG_FORMAT)
-    file(GLOB_RECURSE ALL_SOURCE_FILES *.cpp *.h)
+    set(FORMAT_SOURCE_FILES
+        main.cpp
+        MetadataExtractor.cpp
+        MetadataExtractor.h
+        FilesystemMetadataExtractor.cpp
+        FilesystemMetadataExtractor.h
+        BinaryMetadataExtractor.cpp
+        BinaryMetadataExtractor.h)
     add_custom_target(format
-        COMMAND ${CLANG_FORMAT} -i ${ALL_SOURCE_FILES}
+        COMMAND ${CLANG_FORMAT} -i ${FORMAT_SOURCE_FILES}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Running clang-format on all source files")
 endif()

@@ -14,7 +14,7 @@ uint64_t DecodeVarint64(char const* buffer, size_t bufferSize, size_t* count)
 {
     uint8_t const* buf = reinterpret_cast<uint8_t const*>(buffer);
     uint64_t result = 0;
-    uint32_t b;
+    uint8_t b;
 
     *count = 0;
 
@@ -29,15 +29,14 @@ uint64_t DecodeVarint64(char const* buffer, size_t bufferSize, size_t* count)
         b = buf[*count];
         result |= static_cast<uint64_t>(b & 0x7F) << (7 * *count);
         ++*count;
-    }
-    while (b & 0x80);
+    } while (b & 0x80);
 
     return result;
 }
 
 class BinaryMetadata : public MetadataExtractor::Metadata
 {
-public:
+  public:
     explicit BinaryMetadata(std::string id, uint8_t const* data, int32_t length) : Metadata(std::move(id)), Data(data), Length(length)
     {
     }
@@ -47,11 +46,12 @@ public:
         return std::make_shared<google::protobuf::io::CodedInputStream>(Data, Length);
     }
 
-private:
+  private:
+    // Points into BinaryMetadataExtractor::_binary, which must outlive this object.
     uint8_t const* Data;
     int32_t Length;
 };
-}
+} // namespace
 
 void BinaryMetadataExtractor::Parse(boost::filesystem::path const& binaryPath)
 {
@@ -77,38 +77,41 @@ void BinaryMetadataExtractor::ReadFile(boost::filesystem::path const& binaryPath
 
 void BinaryMetadataExtractor::ParsePESections()
 {
-    // Minimum size: DOS header (64 bytes) + PE signature (4) + COFF header (20)
+    // Minimum size: IMAGE_DOS_HEADER (64 bytes)
     if (_binary.size() < 64)
         return;
 
-    // Check DOS signature "MZ"
+    // IMAGE_DOS_HEADER.e_magic == "MZ"
     if (_binary[0] != 'M' || _binary[1] != 'Z')
         return;
 
-    // Read e_lfanew at offset 0x3C (4-byte little-endian)
+    // IMAGE_DOS_HEADER.e_lfanew at offset 0x3C (4-byte little-endian)
     uint32_t peOffset = 0;
     std::memcpy(&peOffset, &_binary[0x3C], sizeof(uint32_t));
 
+    // Need at least PE signature (4) + IMAGE_FILE_HEADER (20)
     if (peOffset + 24 > _binary.size())
         return;
 
-    // Check PE signature "PE\0\0"
-    if (_binary[peOffset] != 'P' || _binary[peOffset + 1] != 'E' ||
-        _binary[peOffset + 2] != '\0' || _binary[peOffset + 3] != '\0')
+    // PE signature: "PE\0\0"
+    if (std::memcmp(&_binary[peOffset], "PE\0\0", 4) != 0)
         return;
 
-    // COFF header starts at peOffset + 4
+    // IMAGE_FILE_HEADER at peOffset + 4
     size_t coffOffset = peOffset + 4;
 
+    // IMAGE_FILE_HEADER.NumberOfSections at coffOffset+2
     uint16_t numberOfSections = 0;
     std::memcpy(&numberOfSections, &_binary[coffOffset + 2], sizeof(uint16_t));
 
+    // IMAGE_FILE_HEADER.SizeOfOptionalHeader at coffOffset+16
     uint16_t optionalHeaderSize = 0;
     std::memcpy(&optionalHeaderSize, &_binary[coffOffset + 16], sizeof(uint16_t));
 
-    // Section table starts after COFF header (20 bytes) + optional header
+    // IMAGE_SECTION_HEADER table starts after the optional header
     size_t sectionTableOffset = coffOffset + 20 + optionalHeaderSize;
     constexpr size_t kSectionHeaderSize = 40;
+    // IMAGE_SCN_CNT_INITIALIZED_DATA
     constexpr uint32_t kImageScnCntInitializedData = 0x00000040;
 
     for (uint16_t i = 0; i < numberOfSections; ++i)
@@ -117,12 +120,14 @@ void BinaryMetadataExtractor::ParsePESections()
         if (entryOffset + kSectionHeaderSize > _binary.size())
             break;
 
-        // Section name: 8 bytes at offset 0
+        // IMAGE_SECTION_HEADER.Name: 8 bytes at offset 0
         char nameBytes[9] = {};
         std::memcpy(nameBytes, &_binary[entryOffset], 8);
         std::string name(nameBytes);
 
-        // Raw data offset at byte 20, raw data size at byte 16
+        // IMAGE_SECTION_HEADER.SizeOfRawData at offset 16
+        // IMAGE_SECTION_HEADER.PointerToRawData at offset 20
+        // IMAGE_SECTION_HEADER.Characteristics at offset 36
         uint32_t rawSize = 0;
         uint32_t rawOffset = 0;
         uint32_t characteristics = 0;
@@ -191,8 +196,9 @@ void BinaryMetadataExtractor::FindMetadata()
                 continue;
 
             // Validate parsed name matches the name we extracted from backward search.
-            // MergeFromCodedStream consumes the entire buffer, so back-to-back descriptors
-            // (e.g. inside a FileDescriptorSet) get merged and garble the name field.
+            // We may have matched the inner 0x0A tag of a FileDescriptorSet wrapper.
+            // If so, MergeFromCodedStream will read bytes from a sibling descriptor as
+            // part of this message, garbling the name field.
             if (descriptor.name() != expectedName)
                 continue;
 
@@ -223,6 +229,13 @@ void BinaryMetadataExtractor::FindMetadata()
 
 void BinaryMetadataExtractor::FindFileDescriptorSets()
 {
+    struct Candidate
+    {
+        size_t Offset;
+        int32_t Length;
+        std::string Name;
+    };
+
     struct ScanRange
     {
         size_t Start;
@@ -258,7 +271,7 @@ void BinaryMetadataExtractor::FindFileDescriptorSets()
 
             // Try to parse a sequence of consecutive FileDescriptorProto entries
             size_t seqPos = pos;
-            std::vector<std::pair<size_t, int32_t>> candidates; // offset, length pairs
+            std::vector<Candidate> candidates;
 
             while (seqPos < range.End && seqPos < _binary.size())
             {
@@ -275,9 +288,11 @@ void BinaryMetadataExtractor::FindFileDescriptorSets()
                 if (decodedBytes == 0 || innerLength == 0)
                     break;
 
-                // The outer message starts at seqPos: tag(1) + varint(decodedBytes) + innerLength
+                // The outer message: tag(1) + varint(decodedBytes) + innerLength
                 size_t entryStart = seqPos;
-                size_t entryTotalSize = 1 + decodedBytes + innerLength;
+                // innerLength is uint64_t; on 64-bit platforms this is safe.
+                // On 32-bit, an unrealistic >4GB descriptor could overflow.
+                size_t entryTotalSize = 1 + decodedBytes + static_cast<size_t>(innerLength);
 
                 if (entryStart + entryTotalSize > _binary.size())
                     break;
@@ -297,7 +312,7 @@ void BinaryMetadataExtractor::FindFileDescriptorSets()
                     descriptor.name().compare(descriptor.name().size() - 6, 6, ".proto") != 0)
                     break;
 
-                candidates.push_back({entryStart, static_cast<int32_t>(entryTotalSize)});
+                candidates.push_back({entryStart, static_cast<int32_t>(entryTotalSize), descriptor.name()});
                 seqPos = entryStart + entryTotalSize;
             }
 
@@ -306,24 +321,20 @@ void BinaryMetadataExtractor::FindFileDescriptorSets()
             {
                 for (auto const& candidate : candidates)
                 {
-                    // Re-parse to get the name for deduplication
-                    size_t tagAndVarintSize = 0;
+                    // Must have a name ending in .proto (defense in depth —
+                    // already validated in the scan pass above)
+                    if (candidate.Name.size() < 6 ||
+                        candidate.Name.compare(candidate.Name.size() - 6, 6, ".proto") != 0)
+                        continue;
+
+                    if (!_foundDescriptorNames.insert(candidate.Name).second)
+                        continue;
+
+                    // Re-derive innerStart from the candidate offset
                     size_t decodedBytes = 0;
-                    size_t remaining = _binary.size() - (candidate.first + 1);
-                    uint64_t innerLength = DecodeVarint64(&_binary[candidate.first + 1], remaining, &decodedBytes);
-                    tagAndVarintSize = 1 + decodedBytes;
-
-                    size_t innerStart = candidate.first + tagAndVarintSize;
-                    google::protobuf::io::CodedInputStream stream(
-                        reinterpret_cast<uint8_t const*>(&_binary[innerStart]),
-                        static_cast<int>(innerLength));
-
-                    google::protobuf::FileDescriptorProto descriptor;
-                    if (!descriptor.MergeFromCodedStream(&stream))
-                        continue;
-
-                    if (!_foundDescriptorNames.insert(descriptor.name()).second)
-                        continue;
+                    size_t remaining = _binary.size() - (candidate.Offset + 1);
+                    uint64_t innerLength = DecodeVarint64(&_binary[candidate.Offset + 1], remaining, &decodedBytes);
+                    size_t innerStart = candidate.Offset + 1 + decodedBytes;
 
                     _metadatas.emplace_back(new BinaryMetadata(
                         std::to_string(_metadatas.size()),

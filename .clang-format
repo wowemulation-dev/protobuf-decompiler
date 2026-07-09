@@ -1,0 +1,21 @@
+---
+BasedOnStyle: LLVM
+Language: Cpp
+BreakBeforeBraces: Allman
+IndentWidth: 4
+ColumnLimit: 0
+UseTab: Never
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: true
+BinPackArguments: false
+BinPackParameters: false
+PointerAlignment: Left
+ReflowComments: true
+SortIncludes: false
+SpaceBeforeAssignmentOperators: true
+SpacesBeforeTrailingComments: 1

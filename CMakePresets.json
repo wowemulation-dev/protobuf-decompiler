@@ -213,13 +213,5 @@
       "configuration": "Release"
     }
   ],
-  "testPresets": [
-    {
-      "name": "default",
-      "configurePreset": "debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    }
-  ]
+  "testPresets": []
 }
