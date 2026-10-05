@@ -116,6 +116,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - vcpkg protobuf versions have incompatible API changes
   - protobuf 2.6.1 source build on Windows requires Visual Studio
     configuration
+- `.markdownlint.jsonc` and `.markdownlintignore` removed (replaced by `.mado.toml`)
+
+### Added
+- Markdown linting via `mado` (Rust-based, 49-60x faster than markdownlint)
+  - Config: `.mado.toml` (TOML format)
+  - Command: `mado check .`
 
 ## [1.0.0] - 2023-04-14
 
