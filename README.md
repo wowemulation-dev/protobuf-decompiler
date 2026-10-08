@@ -11,8 +11,26 @@ compiled into binaries. Designed for World of Warcraft client analysis.
 
 **Supported WoW Versions:**
 
-- **WoW Retail**: 6.0.2 (Warlords of Draenor) through current retail releases
-- **WoW Classic**: 1.13.2 through current Classic releases
+- **WoW Retail**: 6.0.2 (Warlords of Draenor) through retail build 12.1.0.69933
+- **WoW Classic**: 1.13.2 through MoP Classic build 5.5.3.66290
+
+See [Protobuf Version Support Boundary](#protobuf-version-support-boundary).
+Clients from build 70032 onward are not supported.
+
+## Protobuf Version Support Boundary
+
+Blizzard upgraded the protobuf runtime compiled into WoW clients for the first
+time in over a decade. Binaries embed a `blizzard_protobuf.version` string:
+
+| Client builds | Protobuf runtime | Supported by this tool |
+|---|---|---|
+| Up to build 69933 (e.g. retail 12.1.0.69933, MoP Classic 5.5.3.66290) | Blizzard fork of protobuf 2.6.1 (`protobuf_blz-2.6.1.13`) | Yes (final supported range) |
+| Build 70032 and later (e.g. MoP Classic 5.5.4.70032, Classic Era 1.15.9.70003, beta 1.60.1.70245) | Blizzard fork of protobuf 6.30.1 (`protobuf_blz-6.30.1`, editions support) | No |
+
+This release is the last one that supports the protobuf 2.6.1 fork. Future
+releases will target newer protobuf versions. The 2.6.1-based descriptor
+handling silently discards edition-era fields (`FeatureSet`, `edition`), so
+binaries from build 70032 onward cannot be reconstructed faithfully.
 
 ## Features
 
@@ -157,8 +175,10 @@ This project is licensed under the [MIT License](LICENSE.md).
 
 ## Important Notes
 
-- Requires protobuf version 2.6.1 for API compatibility
-- Tested with World of Warcraft clients (6.0.2+ retail, 1.13.2+ Classic)
+- Requires protobuf version 2.6.1 for API compatibility; supports only WoW
+  client builds up to 69933 (see Protobuf Version Support Boundary)
+- Tested with World of Warcraft clients (6.0.2+ retail, 1.13.2+ Classic,
+  excluding builds 70032 and later)
 - Contains intentional memory leaks to avoid protobuf double-free issues
 - Uses pointer arithmetic to access protobuf internal structures
 - Windows builds currently not supported in CI due to protobuf 2.6.1 compatibility requirements

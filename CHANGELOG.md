@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [1.1.0] - 2026-10-08
+
+### Deprecated
+
+- Support for WoW client builds 70032 and later. Blizzard upgraded the client
+  protobuf runtime from the 2.6.1 fork (`protobuf_blz-2.6.1.13`) to a
+  protobuf 6.30.1 fork (`protobuf_blz-6.30.1`, editions support) between
+  builds 69933 and 70032. This is the final release supporting the protobuf
+  2.6.1 fork; future releases will target newer protobuf versions. See
+  README.md, section "Protobuf Version Support Boundary".
 
 - EditorConfig configuration (.editorconfig) for consistent coding style across
   editors and IDEs
@@ -119,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.markdownlint.jsonc` and `.markdownlintignore` removed (replaced by `.mado.toml`)
 
 ### Added
+
 - Markdown linting via `mado` (Rust-based, 49-60x faster than markdownlint)
   - Config: `.mado.toml` (TOML format)
   - Command: `mado check .`
