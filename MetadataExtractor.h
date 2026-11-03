@@ -1,17 +1,10 @@
 #ifndef METADATA_EXTRACTOR_H
 #define METADATA_EXTRACTOR_H
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
-
-namespace boost
-{
-namespace filesystem
-{
-    class path;
-}
-}
 
 namespace google
 {
@@ -44,7 +37,7 @@ public:
 
     virtual ~MetadataExtractor() = default;
 
-    virtual void Parse(boost::filesystem::path const& path) = 0;
+    virtual void Parse(std::filesystem::path const& path) = 0;
 
     std::vector<std::unique_ptr<Metadata>> const& GetMetadata() const { return _metadatas; }
 

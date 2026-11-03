@@ -1,9 +1,9 @@
 #include "BinaryMetadataExtractor.h"
-#include <boost/filesystem.hpp>
 #include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/io/coded_stream.h>
-#include <fstream>
 #include <cstring>
+#include <fstream>
+#include <iterator>
 
 namespace
 {
@@ -53,7 +53,7 @@ class BinaryMetadata : public MetadataExtractor::Metadata
 };
 } // namespace
 
-void BinaryMetadataExtractor::Parse(boost::filesystem::path const& binaryPath)
+void BinaryMetadataExtractor::Parse(std::filesystem::path const& binaryPath)
 {
     ReadFile(binaryPath);
     ParsePESections();
@@ -61,7 +61,7 @@ void BinaryMetadataExtractor::Parse(boost::filesystem::path const& binaryPath)
     FindFileDescriptorSets();
 }
 
-void BinaryMetadataExtractor::ReadFile(boost::filesystem::path const& binaryPath)
+void BinaryMetadataExtractor::ReadFile(std::filesystem::path const& binaryPath)
 {
     std::ifstream ifs(binaryPath.string(), std::ifstream::binary);
     if (!ifs)
@@ -209,17 +209,17 @@ void BinaryMetadataExtractor::FindMetadata()
                 continue;
             }
 
-            // Use ByteSize() to get the actual serialized length of the descriptor,
+            // Use ByteSizeLong() to get the actual serialized length of the descriptor,
             // not CurrentPosition() which reflects total bytes consumed from the
             // stream (including adjacent descriptors in FileDescriptorSet containers).
-            int32_t descriptorSize = descriptor.ByteSize();
-            if (descriptorSize <= 0)
+            size_t descriptorSize = descriptor.ByteSizeLong();
+            if (descriptorSize == 0)
                 continue;
 
             _metadatas.emplace_back(new BinaryMetadata(
                 std::to_string(_metadatas.size()),
                 reinterpret_cast<uint8_t const*>(&_binary[candidateStart]),
-                descriptorSize));
+                static_cast<int32_t>(descriptorSize)));
             found = true;
         }
 

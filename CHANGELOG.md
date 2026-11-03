@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for WoW client builds 70032 and later. Blizzard upgraded the client
+  protobuf runtime to a protobuf 6.30.1 fork (`protobuf_blz-6.30.1`, editions
+  support). The tool now links against protobuf v30.1 — the exact upstream
+  version of that fork — fetched and built automatically via CMake FetchContent.
+- Editions-era descriptors now reconstruct fully: custom options (e.g. method
+  `id:` / routing) resolve as real extensions instead of failing to link.
+- Validity filter for scanner false positives: descriptor names must be
+  filename-shaped, carry real schema content, and dangling public/weak
+  dependency indices are pruned.
+- Output path sanitization: descriptor names are rejected if absolute or
+  containing `..`, and final paths are normalized and checked to stay within
+  the output directory.
+- Provenance header on every emitted `.proto` (source file, libprotobuf
+  version; notes that source comments are not recoverable).
+
+### Removed
+
+- Boost dependency (filesystem, program_options) — replaced with
+  `std::filesystem`, `std::optional`, and a small argument parser.
+- Protobuf 2.6.1 source build (ExternalProject) and the `cmake-build/`
+  CMake replacement for protobuf 2.6.1 autotools.
+- ABI-dependent protobuf internals manipulation: private-member pool hacking,
+  manual `ExtensionSet` registration, the intentionally leaked
+  `DynamicMessageFactory`, and the `ShutdownProtobufLibrary()` call.
+
+### Changed
+
+- Minimum CMake version raised to 3.31.
+- `--binary` and `--directory` now share the same reconstruction pipeline;
+  well-known `google/protobuf/*` files are skipped in favor of the library's
+  own built-ins.
+- Unlinked descriptors are dumped as raw `.proto.txt` instead of being lost.
+
 ## [1.1.0] - 2026-10-08
 
 ### Deprecated

@@ -6,7 +6,7 @@
 class FilesystemMetadataExtractor : public MetadataExtractor
 {
 public:
-    void Parse(boost::filesystem::path const& path) override;
+    void Parse(std::filesystem::path const& path) override;
 };
 
 #endif // FILESYSTEM_METADATA_EXTRACTOR_H

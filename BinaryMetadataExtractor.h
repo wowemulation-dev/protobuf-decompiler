@@ -2,6 +2,7 @@
 #define BINARY_METADATA_EXTRACTOR_H
 
 #include "MetadataExtractor.h"
+#include <filesystem>
 #include <set>
 #include <string>
 #include <vector>
@@ -9,7 +10,7 @@
 class BinaryMetadataExtractor : public MetadataExtractor
 {
 public:
-    void Parse(boost::filesystem::path const& binaryPath) override;
+    void Parse(std::filesystem::path const& binaryPath) override;
 
 private:
     struct SectionInfo
@@ -19,7 +20,7 @@ private:
         size_t Size;
     };
 
-    void ReadFile(boost::filesystem::path const& binaryPath);
+    void ReadFile(std::filesystem::path const& binaryPath);
     void ParsePESections();
     void FindMetadata();
     void FindFileDescriptorSets();

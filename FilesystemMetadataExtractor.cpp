@@ -1,9 +1,9 @@
 #include "FilesystemMetadataExtractor.h"
-#include <boost/filesystem.hpp>
-#include <boost/optional.hpp>
-#include <google/protobuf/wire_format_lite.h>
+#include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <filesystem>
 #include <fstream>
+#include <optional>
 
 namespace
 {
@@ -19,8 +19,8 @@ public:
         struct Data
         {
             std::ifstream in;
-            boost::optional<google::protobuf::io::IstreamInputStream> zeroCopyInput;
-            boost::optional<google::protobuf::io::CodedInputStream> decoder;
+            std::optional<google::protobuf::io::IstreamInputStream> zeroCopyInput;
+            std::optional<google::protobuf::io::CodedInputStream> decoder;
         };
 
         std::shared_ptr<Data> data = std::make_shared<Data>();
@@ -30,17 +30,16 @@ public:
             return nullptr;
 
         data->zeroCopyInput.emplace(&data->in);
-        data->decoder.emplace(&data->zeroCopyInput.get());
-        return { data, data->decoder.get_ptr() };
+        data->decoder.emplace(&*data->zeroCopyInput);
+        return { data, &*data->decoder };
     }
 };
 }
 
-void FilesystemMetadataExtractor::Parse(boost::filesystem::path const& path)
+void FilesystemMetadataExtractor::Parse(std::filesystem::path const& path)
 {
-    boost::filesystem::directory_iterator end;
-    for (boost::filesystem::directory_iterator itr(path); itr != end; ++itr)
-        if (is_regular_file(itr->status()))
-            if (itr->path().extension().string().find(".protoc") != std::string::npos)
-                _metadatas.emplace_back(new FilesystemMetadata(itr->path().string()));
+    for (auto const& entry : std::filesystem::directory_iterator(path))
+        if (entry.is_regular_file())
+            if (entry.path().extension().string().find(".protoc") != std::string::npos)
+                _metadatas.emplace_back(new FilesystemMetadata(entry.path().string()));
 }
