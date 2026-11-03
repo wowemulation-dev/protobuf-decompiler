@@ -49,7 +49,7 @@ custom options (e.g. `id:` on methods, routing options) fully resolved.
 **Required:**
 
 - **CMake** (≥ 3.31)
-- **C++17** compatible compiler (GCC or Clang)
+- **C++20** compatible compiler (GCC or Clang)
 
 No other dependencies: protobuf v30.1 (and its abseil dependency) are fetched
 and built automatically by CMake.

@@ -5,8 +5,10 @@ project(protobuf_decompiler
     DESCRIPTION "Reconstructs .proto files from Google protobuf reflection strings"
     LANGUAGES CXX)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+# Set C++ standard. C++20 is required: protobuf v30.1 depends on abseil
+# 20250127.0, which uses unguarded C++20 features (e.g. std::countr_zero in
+# raw_hash_set.h) and therefore cannot be compiled in C++17 mode.
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

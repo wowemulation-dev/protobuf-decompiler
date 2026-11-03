@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- C++ standard raised from C++17 to C++20: required by the abseil 20250127.0
+  dependency of protobuf v30.1, which uses unguarded C++20 features.
 - Minimum CMake version raised to 3.31.
 - `--binary` and `--directory` now share the same reconstruction pipeline;
   well-known `google/protobuf/*` files are skipped in favor of the library's
