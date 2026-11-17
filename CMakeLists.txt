@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(protobuf_decompiler
+project(
+    protobuf_decompiler
     VERSION 1.2.0
     DESCRIPTION "Reconstructs .proto files from Google protobuf reflection strings"
     LANGUAGES CXX)
@@ -14,16 +15,26 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+    set(CMAKE_BUILD_TYPE
+        "Release"
+        CACHE STRING "Choose the type of build." FORCE)
+    set_property(
+        CACHE CMAKE_BUILD_TYPE
+        PROPERTY STRINGS
+                 "Debug"
+                 "Release"
+                 "MinSizeRel"
+                 "RelWithDebInfo")
 endif()
 
-# Enable useful warnings
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options(/W4)
-endif()
+# Compiler warnings for this project's own sources only. Kept in a variable and
+# applied per-target (below) so FetchContent dependencies (protobuf, abseil) are
+# not compiled with our warning flags.
+set(PROTOBUF_DECOMPILER_WARNINGS
+    $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-Wall>
+    $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-Wextra>
+    $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-Wpedantic>
+    $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/W4>)
 
 include(GNUInstallDirs)
 include(FetchContent)
@@ -33,19 +44,23 @@ include(FetchContent)
 # built-in descriptor.proto and cpp_features.proto are the Editions-era ones, so
 # modern client descriptors link without any pool hacking. Abseil is resolved
 # automatically by protobuf's CMake (find_package with FetchContent fallback).
+# SYSTEM keeps dependency headers out of our warning diagnostics.
 set(BUILD_SHARED_LIBS OFF)
+set(protobuf_BUILD_SHARED_LIBS OFF)
 set(protobuf_INSTALL OFF)
 set(protobuf_BUILD_TESTS OFF)
 set(protobuf_BUILD_PROTOC_BINARIES OFF)
 set(protobuf_BUILD_LIBUPB OFF)
-FetchContent_Declare(protobuf
+FetchContent_Declare(
+    protobuf SYSTEM
     GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
     GIT_TAG v30.1
     GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(protobuf)
 
 # Create executable target
-add_executable(protobuf_decompiler
+add_executable(
+    protobuf_decompiler
     main.cpp
     MetadataExtractor.cpp
     MetadataExtractor.h
@@ -57,17 +72,22 @@ add_executable(protobuf_decompiler
 # Link the fetched protobuf (static)
 target_link_libraries(protobuf_decompiler PRIVATE protobuf::libprotobuf)
 
+# Enforce C++20 on this target explicitly, so the requirement survives any
+# caller that sets an older CMAKE_CXX_STANDARD in the cache.
+target_compile_features(protobuf_decompiler PRIVATE cxx_std_20)
+target_compile_options(protobuf_decompiler PRIVATE ${PROTOBUF_DECOMPILER_WARNINGS})
+
 # Set output directories
-set_target_properties(protobuf_decompiler PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/bin"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(
+    protobuf_decompiler
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+               RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin"
+               RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin"
+               RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/bin"
+               RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin")
 
 # Installation
-install(TARGETS protobuf_decompiler
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS protobuf_decompiler RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # Export compile commands for better IDE support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -83,7 +103,8 @@ if(CLANG_FORMAT)
         FilesystemMetadataExtractor.h
         BinaryMetadataExtractor.cpp
         BinaryMetadataExtractor.h)
-    add_custom_target(format
+    add_custom_target(
+        format
         COMMAND ${CLANG_FORMAT} -i ${FORMAT_SOURCE_FILES}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Running clang-format on all source files")
