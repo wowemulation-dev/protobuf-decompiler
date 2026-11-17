@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the output directory.
 - Provenance header on every emitted `.proto` (source file, libprotobuf
   version; notes that source comments are not recoverable).
+- Reworked CMake presets: `default` (Clang Debug), `release` (Clang Release),
+  `gcc-debug`, `gcc-release`, plus `ci-linux` / `ci-macos` aliases. Every
+  configure preset pins C++20 and CMake 3.31.
+- Tooling configuration: `.clang-format` + `.clang-format-ignore`,
+  `.clang-tidy`, and `.cmake-format.yaml` + `.cmake-format-ignore`.
 
 ### Removed
 
@@ -36,13 +41,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- C++ standard raised from C++17 to C++20: required by the abseil 20250127.0
-  dependency of protobuf v30.1, which uses unguarded C++20 features.
-- Minimum CMake version raised to 3.31.
+- C++20 is now enforced for the project target (`cxx_std_20`) and in every
+  configure preset. Required by the abseil 20250127.0 dependency of protobuf
+  v30.1, which uses unguarded C++20 features.
+- Minimum CMake version raised to 3.31, including `CMakePresets.json`.
+- Compiler warnings are applied per-target instead of directory-wide, so the
+  fetched protobuf and abseil sources are not built with this project's flags.
+  The protobuf dependency is marked `SYSTEM`, removing third-party warnings
+  from the project's diagnostics.
 - `--binary` and `--directory` now share the same reconstruction pipeline;
   well-known `google/protobuf/*` files are skipped in favor of the library's
   own built-ins.
 - Unlinked descriptors are dumped as raw `.proto.txt` instead of being lost.
+
+### Fixed
+
+- `CMakePresets.json` forced `CMAKE_CXX_STANDARD=17`, contradicting the C++20
+  requirement. It now sets C++20.
+- Stale references to the removed protobuf 2.6.1 toolchain (CMake 3.28 issue
+  template hint, missing `.clang-format` notes) removed from project docs.
 
 ## [1.1.0] - 2026-10-08
 

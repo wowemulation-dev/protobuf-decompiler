@@ -66,13 +66,20 @@ cd protobuf-decompiler
 # List available presets
 cmake --list-presets
 
-# Configure and build with a preset (e.g. release build with GCC)
-cmake --preset gcc-release
-cmake --build --preset gcc-release
+# Configure and build with a preset (Clang Debug by default)
+cmake --preset default
+cmake --build --preset default
 
-# Or for debug builds
+# Release build with Clang
+cmake --preset release
+cmake --build --preset release
+
+# Or GCC
 cmake --preset gcc-debug
 cmake --build --preset gcc-debug
+
+cmake --preset gcc-release
+cmake --build --preset gcc-release
 
 # The binary will be in build/<preset-name>/bin/protobuf_decompiler
 ```
@@ -151,8 +158,11 @@ CXX=clang++ cmake .. && make -j$(nproc)
 # Use Ninja for faster builds
 cmake -G Ninja .. && ninja
 
-# Format code (requires clang-format)
+# Format C++ sources (uses the committed .clang-format)
 make format
+
+# Format the build files (requires cmake-format)
+cmake-format -i CMakeLists.txt
 ```
 
 ## System Requirements
