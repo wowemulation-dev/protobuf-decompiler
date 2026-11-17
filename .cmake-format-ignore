@@ -1,0 +1,5 @@
+# cmake-format-ignore(5) -- generated paths
+
+build/
+build-*/
+install/

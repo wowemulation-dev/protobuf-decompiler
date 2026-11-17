@@ -7,50 +7,51 @@
 
 namespace
 {
-constexpr int kMaxVarintBytes = 10;
-constexpr size_t kMaxBackwardSearchWindow = 300;
+    constexpr int kMaxVarintBytes = 10;
+    constexpr size_t kMaxBackwardSearchWindow = 300;
 
-uint64_t DecodeVarint64(char const* buffer, size_t bufferSize, size_t* count)
-{
-    uint8_t const* buf = reinterpret_cast<uint8_t const*>(buffer);
-    uint64_t result = 0;
-    uint8_t b;
-
-    *count = 0;
-
-    do
+    uint64_t DecodeVarint64(char const* buffer, size_t bufferSize, size_t* count)
     {
-        if (*count >= static_cast<size_t>(kMaxVarintBytes) || *count >= bufferSize)
+        uint8_t const* buf = reinterpret_cast<uint8_t const*>(buffer);
+        uint64_t result = 0;
+        uint8_t b;
+
+        *count = 0;
+
+        do
         {
-            *count = 0;
-            return 0;
+            if (*count >= static_cast<size_t>(kMaxVarintBytes) || *count >= bufferSize)
+            {
+                *count = 0;
+                return 0;
+            }
+
+            b = buf[*count];
+            result |= static_cast<uint64_t>(b & 0x7F) << (7 * *count);
+            ++*count;
+        } while (b & 0x80);
+
+        return result;
+    }
+
+    class BinaryMetadata : public MetadataExtractor::Metadata
+    {
+    public:
+        explicit BinaryMetadata(std::string id, uint8_t const* data, int32_t length)
+        : Metadata(std::move(id)), Data(data), Length(length)
+        {
         }
 
-        b = buf[*count];
-        result |= static_cast<uint64_t>(b & 0x7F) << (7 * *count);
-        ++*count;
-    } while (b & 0x80);
+        std::shared_ptr<google::protobuf::io::CodedInputStream> CreateCodedInputStream() const override
+        {
+            return std::make_shared<google::protobuf::io::CodedInputStream>(Data, Length);
+        }
 
-    return result;
-}
-
-class BinaryMetadata : public MetadataExtractor::Metadata
-{
-  public:
-    explicit BinaryMetadata(std::string id, uint8_t const* data, int32_t length) : Metadata(std::move(id)), Data(data), Length(length)
-    {
-    }
-
-    std::shared_ptr<google::protobuf::io::CodedInputStream> CreateCodedInputStream() const override
-    {
-        return std::make_shared<google::protobuf::io::CodedInputStream>(Data, Length);
-    }
-
-  private:
-    // Points into BinaryMetadataExtractor::_binary, which must outlive this object.
-    uint8_t const* Data;
-    int32_t Length;
-};
+    private:
+        // Points into BinaryMetadataExtractor::_binary, which must outlive this object.
+        uint8_t const* Data;
+        int32_t Length;
+    };
 } // namespace
 
 void BinaryMetadataExtractor::Parse(std::filesystem::path const& binaryPath)
@@ -187,9 +188,8 @@ void BinaryMetadataExtractor::FindMetadata()
 
             // Try to parse as FileDescriptorProto from the candidate start
             size_t bytesAvailable = _binary.size() - candidateStart;
-            google::protobuf::io::CodedInputStream stream(
-                reinterpret_cast<uint8_t const*>(&_binary[candidateStart]),
-                static_cast<int>(bytesAvailable));
+            google::protobuf::io::CodedInputStream stream(reinterpret_cast<uint8_t const*>(&_binary[candidateStart]),
+                                                          static_cast<int>(bytesAvailable));
 
             google::protobuf::FileDescriptorProto descriptor;
             if (!descriptor.MergeFromCodedStream(&stream))
@@ -216,10 +216,9 @@ void BinaryMetadataExtractor::FindMetadata()
             if (descriptorSize == 0)
                 continue;
 
-            _metadatas.emplace_back(new BinaryMetadata(
-                std::to_string(_metadatas.size()),
-                reinterpret_cast<uint8_t const*>(&_binary[candidateStart]),
-                static_cast<int32_t>(descriptorSize)));
+            _metadatas.emplace_back(new BinaryMetadata(std::to_string(_metadatas.size()),
+                                                       reinterpret_cast<uint8_t const*>(&_binary[candidateStart]),
+                                                       static_cast<int32_t>(descriptorSize)));
             found = true;
         }
 
@@ -299,9 +298,8 @@ void BinaryMetadataExtractor::FindFileDescriptorSets()
 
                 // Try parsing the inner bytes as FileDescriptorProto
                 size_t innerStart = seqPos + 1 + decodedBytes;
-                google::protobuf::io::CodedInputStream stream(
-                    reinterpret_cast<uint8_t const*>(&_binary[innerStart]),
-                    static_cast<int>(innerLength));
+                google::protobuf::io::CodedInputStream stream(reinterpret_cast<uint8_t const*>(&_binary[innerStart]),
+                                                              static_cast<int>(innerLength));
 
                 google::protobuf::FileDescriptorProto descriptor;
                 if (!descriptor.MergeFromCodedStream(&stream))
@@ -336,10 +334,9 @@ void BinaryMetadataExtractor::FindFileDescriptorSets()
                     uint64_t innerLength = DecodeVarint64(&_binary[candidate.Offset + 1], remaining, &decodedBytes);
                     size_t innerStart = candidate.Offset + 1 + decodedBytes;
 
-                    _metadatas.emplace_back(new BinaryMetadata(
-                        std::to_string(_metadatas.size()),
-                        reinterpret_cast<uint8_t const*>(&_binary[innerStart]),
-                        static_cast<int32_t>(innerLength)));
+                    _metadatas.emplace_back(new BinaryMetadata(std::to_string(_metadatas.size()),
+                                                               reinterpret_cast<uint8_t const*>(&_binary[innerStart]),
+                                                               static_cast<int32_t>(innerLength)));
                 }
                 pos = seqPos;
             }

@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: MIT
+# clang-tidy configuration.
+#
+# Enable the main check groups and disable specific checks that are
+# noisy or conflict with project style.
+
+Checks: >
+  -*,
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  cppcoreguidelines-*,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length,
+  -readability-implicit-bool-conversion,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -bugprone-exception-escape,
+  -readability-convert-member-functions-to-static,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
+
+HeaderFilterRegex: '.*\.(cpp|h)$'
