@@ -1,28 +1,21 @@
 #ifndef METADATA_EXTRACTOR_H
 #define METADATA_EXTRACTOR_H
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace boost
-{
-namespace filesystem
-{
-    class path;
-}
-}
-
 namespace google
 {
-namespace protobuf
-{
-    namespace io
+    namespace protobuf
     {
-        class CodedInputStream;
-    }
-}
-}
+        namespace io
+        {
+            class CodedInputStream;
+        }
+    } // namespace protobuf
+} // namespace google
 
 class MetadataExtractor
 {
@@ -30,11 +23,14 @@ public:
     class Metadata
     {
     public:
-        explicit Metadata(std::string id) : _id(std::move(id)) { }
+        explicit Metadata(std::string id) : _id(std::move(id)) {}
 
         virtual ~Metadata() = default;
 
-        std::string const& GetId() const { return _id; }
+        std::string const& GetId() const
+        {
+            return _id;
+        }
 
         virtual std::shared_ptr<google::protobuf::io::CodedInputStream> CreateCodedInputStream() const = 0;
 
@@ -44,9 +40,12 @@ public:
 
     virtual ~MetadataExtractor() = default;
 
-    virtual void Parse(boost::filesystem::path const& path) = 0;
+    virtual void Parse(std::filesystem::path const& path) = 0;
 
-    std::vector<std::unique_ptr<Metadata>> const& GetMetadata() const { return _metadatas; }
+    std::vector<std::unique_ptr<Metadata>> const& GetMetadata() const
+    {
+        return _metadatas;
+    }
 
     Metadata const* GetById(std::string const& id) const;
 

@@ -11,11 +11,10 @@ compiled into binaries. Designed for World of Warcraft client analysis.
 
 **Supported WoW Versions:**
 
-- **WoW Retail**: 6.0.2 (Warlords of Draenor) through retail build 12.1.0.69933
-- **WoW Classic**: 1.13.2 through MoP Classic build 5.5.3.66290
+- **WoW Retail**: 6.0.2 (Warlords of Draenor) through current retail builds
+- **WoW Classic / Forever**: 1.13.2 through current builds (e.g. 1.60.1.70707)
 
 See [Protobuf Version Support Boundary](#protobuf-version-support-boundary).
-Clients from build 70032 onward are not supported.
 
 ## Protobuf Version Support Boundary
 
@@ -24,19 +23,23 @@ time in over a decade. Binaries embed a `blizzard_protobuf.version` string:
 
 | Client builds | Protobuf runtime | Supported by this tool |
 |---|---|---|
-| Up to build 69933 (e.g. retail 12.1.0.69933, MoP Classic 5.5.3.66290) | Blizzard fork of protobuf 2.6.1 (`protobuf_blz-2.6.1.13`) | Yes (final supported range) |
-| Build 70032 and later (e.g. MoP Classic 5.5.4.70032, Classic Era 1.15.9.70003, beta 1.60.1.70245) | Blizzard fork of protobuf 6.30.1 (`protobuf_blz-6.30.1`, editions support) | No |
+| Up to build 69933 (e.g. retail 12.1.0.69933, MoP Classic 5.5.3.66290) | Blizzard fork of protobuf 2.6.1 (`protobuf_blz-2.6.1.13`) | Yes (descriptors predate editions; output omits edition-era fields) |
+| Build 70032 and later (e.g. MoP Classic 5.5.4.70032, Classic Era 1.15.9.70003, beta 1.60.1.70707) | Blizzard fork of protobuf 6.30.1 (`protobuf_blz-6.30.1`, editions support) | Yes |
 
-This release is the last one that supports the protobuf 2.6.1 fork. Future
-releases will target newer protobuf versions. The 2.6.1-based descriptor
-handling silently discards edition-era fields (`FeatureSet`, `edition`), so
-binaries from build 70032 onward cannot be reconstructed faithfully.
+This release links against **protobuf v30.1** — the exact upstream version the
+client's `protobuf_blz-6.30.1` fork is based on (`GOOGLE_PROTOBUF_VERSION
+6030001`). Its built-in `descriptor.proto` and `cpp_features.proto` are the
+Editions-era ones, so descriptors from build 70032 onward reconstruct with
+custom options (e.g. `id:` on methods, routing options) fully resolved.
 
 ## Features
 
 - Extracts protobuf descriptors from binary files
 - Reconstructs `.proto` files with original structure and dependencies
-- Supports Linux and macOS platforms
+- Supports editions-era descriptors (protobuf 6.30.1 / v30.1)
+- Resolves custom options as real extensions instead of uninterpreted bytes
+- Filters scanner false positives (garbled names, empty schemas)
+- Sanitizes output paths (rejects absolute paths and `..` from descriptor names)
 - Command-line interface with multiple input methods
 
 ## Quick Start
@@ -45,9 +48,11 @@ binaries from build 70032 onward cannot be reconstructed faithfully.
 
 **Required:**
 
-- **CMake** (≥ 3.28)
-- **C++17** compatible compiler (GCC or Clang)
-- **Boost** (≥ 1.51) - components: filesystem, system, program_options
+- **CMake** (≥ 3.31)
+- **C++20** compatible compiler (GCC or Clang)
+
+No other dependencies: protobuf v30.1 (and its abseil dependency) are fetched
+and built automatically by CMake.
 
 ### Building
 
@@ -61,13 +66,20 @@ cd protobuf-decompiler
 # List available presets
 cmake --list-presets
 
-# Configure and build with a preset (e.g., release build with GCC)
-cmake --preset gcc-release
-cmake --build --preset gcc-release
+# Configure and build with a preset (Clang Debug by default)
+cmake --preset default
+cmake --build --preset default
 
-# Or for debug builds
+# Release build with Clang
+cmake --preset release
+cmake --build --preset release
+
+# Or GCC
 cmake --preset gcc-debug
 cmake --build --preset gcc-debug
+
+cmake --preset gcc-release
+cmake --build --preset gcc-release
 
 # The binary will be in build/<preset-name>/bin/protobuf_decompiler
 ```
@@ -83,18 +95,12 @@ cd protobuf-decompiler
 mkdir build && cd build
 cmake ..
 
-# Build (automatically handles protobuf 2.6.1 dependency)
+# Build (first run fetches and builds protobuf v30.1 + abseil, which takes a while)
 make -j$(nproc)
 
 # Optional: Install system-wide
 sudo make install
 ```
-
-The build system automatically:
-
-- Detects if your system has protobuf 2.6.1 and uses it
-- Downloads and builds protobuf 2.6.1 from source if needed
-- Handles all dependencies and linking
 
 ### Usage
 
@@ -115,11 +121,8 @@ The build system automatically:
 **Examples:**
 
 ```bash
-# Extract from WoW Classic binary (output organized by version)
-./protobuf_decompiler --binary /path/to/classic/client/archive/<version-build-os-arch>/Wow.exe --output ./output/<version-build-os-arch>
-
-# Example with actual version
-./protobuf_decompiler --binary ~/Downloads/battle.net/wow_classic/1.13.2.31650.windows-win64/_classic_/Wow.exe --output ./output/1.13.2.31650.windows-win64
+# Extract from a WoW client binary (output organized by version)
+./protobuf_decompiler --binary /path/to/client/Wow.exe --output ./output/1.60.1.70707.windows-win64
 
 # Legacy positional argument (backward compatibility)
 ./protobuf_decompiler /path/to/binary
@@ -130,17 +133,18 @@ The build system automatically:
 
 ## How It Works
 
-1. Searches executable files for embedded protobuf descriptors
-2. Parses protobuf reflection metadata using internal APIs
-3. Resolves dependencies between message types and imports
-4. Generates `.proto` files maintaining original structure
-
-Implementation details:
-
-- Direct binary analysis for descriptor extraction
-- Two-pass dependency resolution
-- Uses protobuf internal API manipulation
-- Preserves directory structure in output
+1. Scans the binary for embedded serialized `FileDescriptorProto` blobs
+   (two-pass discovery: individual descriptors, then `FileDescriptorSet`
+   containers, bounded by PE section scanning)
+2. Parses each blob and validates it (filename-shaped name, real schema
+   content, dependency indices pruned to valid range)
+3. Layers the scanned descriptors over the library's own generated pool
+   (well-known types, `descriptor.proto`, `cpp_features.proto`) in a
+   `MergedDescriptorDatabase`
+4. Resolves each file with `DescriptorPool::FindFileByName`, which pulls
+   imports and custom-option definitions lazily in dependency order
+5. Emits `FileDescriptor::DebugString()` as `.proto` files, preserving the
+   original directory structure
 
 ## Build Options
 
@@ -154,16 +158,19 @@ CXX=clang++ cmake .. && make -j$(nproc)
 # Use Ninja for faster builds
 cmake -G Ninja .. && ninja
 
-# Format code (requires .clang-format in project root)
+# Format C++ sources (uses the committed .clang-format)
 make format
+
+# Format the build files (requires cmake-format)
+cmake-format -i CMakeLists.txt
 ```
 
 ## System Requirements
 
-- **Operating System**: Linux, macOS
+- **Operating System**: Linux, macOS (Windows configured but untested)
 - **Architecture**: x86_64, ARM64
 - **Memory**: 512MB RAM minimum
-- **Disk Space**: 100MB for build artifacts
+- **Disk Space**: ~500MB for the protobuf v30.1 + abseil build artifacts
 
 ## Contributing
 
@@ -175,10 +182,12 @@ This project is licensed under the [MIT License](LICENSE.md).
 
 ## Important Notes
 
-- Requires protobuf version 2.6.1 for API compatibility; supports only WoW
-  client builds up to 69933 (see Protobuf Version Support Boundary)
-- Tested with World of Warcraft clients (6.0.2+ retail, 1.13.2+ Classic,
-  excluding builds 70032 and later)
-- Contains intentional memory leaks to avoid protobuf double-free issues
-- Uses pointer arithmetic to access protobuf internal structures
-- Windows builds currently not supported in CI due to protobuf 2.6.1 compatibility requirements
+- Links against protobuf v30.1 (fetched at build time); the client's
+  `protobuf_blz-6.30.1` fork is a fork of exactly this upstream version
+- protobuf v30 reserves `namespace pb` internally — do not alias `pb` in
+  code against this library
+- Descriptor names become output paths; names are validated (printable
+  filename characters, no absolute paths, no `..`) and final paths are
+  normalized and checked to stay within the output directory
+- Scanned well-known `google/protobuf/*` files are intentionally skipped in
+  favor of the library's own built-ins

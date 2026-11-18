@@ -65,7 +65,7 @@ body:
     attributes:
       label: CMake Version
       description: Output of `cmake --version`
-      placeholder: "cmake version 3.28.1"
+      placeholder: "cmake version 3.31.0 or newer"
     validations:
       required: false
 

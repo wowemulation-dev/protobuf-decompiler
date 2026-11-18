@@ -1,0 +1,52 @@
+---
+# SPDX-License-Identifier: MIT
+# cmake-format configuration aligned to the project's CMake style.
+#
+# Style follows CMakeLists.txt: 4-space indent, 120-column lines, target-based
+# commands, UPPERCASE keywords, command case preserved, one argument per line,
+# closing paren attached to the last argument.
+format:
+  line_width: 120
+  tab_size: 4
+  use_tabchars: false
+  line_ending: unix
+  command_case: unchanged
+  keyword_case: upper
+  max_pargs_hwrap: 3
+  min_prefix_chars: 4
+  max_lines_hwrap: 2
+  separate_ctrl_name_with_space: false
+  separate_fn_name_with_space: false
+  enable_sort: false
+  autosort: false
+  dangle_parens: false
+  always_wrap: []
+parse:
+  # FetchContent_Declare: keep the GIT_* keyword/value pairing so wrapped
+  # declarations stay stable across reformatting.
+  additional_commands:
+    fetchcontent_declare:
+      flags: [SYSTEM, EXCLUDE_FROM_ALL]
+      kwargs:
+        GIT_REPOSITORY: 1
+        GIT_TAG: 1
+        GIT_SHALLOW: 1
+        SOURCE_SUBDIR: 1
+        OPTIONS: 1
+        URL: 1
+        URL_HASH: 1
+        DOWNLOAD_ONLY: 1
+markup:
+  enable_markup: false
+  first_comment_is_literal: true
+  literal_comment_pattern: ".*"
+lint:
+  disabled_codes: ["C0111"]
+  function_pattern: "[a-zA-Z_][a-zA-Z0-9_]*"
+  macro_pattern: "[a-zA-Z_][a-zA-Z0-9_]*"
+  global_var_pattern: "[A-Z][A-Z0-9_]*"
+  local_var_pattern: "[a-z][a-z0-9_]*"
+  argument_var_pattern: "[a-z][a-z0-9_]*"
+  keyword_pattern: "[A-Z][A-Z0-9_]*"
+  max_statements: 80
+  max_arguments: 20

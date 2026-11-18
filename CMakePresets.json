@@ -1,8 +1,8 @@
 {
-  "version": 3,
+  "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 28,
+    "minor": 31,
     "patch": 0
   },
   "configurePresets": [
@@ -12,104 +12,60 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "installDir": "${sourceDir}/install/${presetName}",
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_EXTENSIONS": "OFF",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "Boost_USE_STATIC_LIBS": "OFF",
-        "Boost_USE_MULTITHREADED": "ON",
-        "Boost_USE_STATIC_RUNTIME": "OFF"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
-      "name": "base-linux",
-      "hidden": true,
+      "name": "default",
+      "displayName": "Default (Debug, Clang)",
       "inherits": "base",
-      "generator": "Unix Makefiles",
-      "condition": {
-        "type": "notEquals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      }
-    },
-    {
-      "name": "debug",
-      "displayName": "Debug",
-      "inherits": "base-linux",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
       }
     },
     {
       "name": "release",
-      "displayName": "Release",
-      "inherits": "base-linux",
+      "displayName": "Release (Clang)",
+      "inherits": "base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "relwithdebinfo",
-      "displayName": "Release with Debug Info",
-      "inherits": "base-linux",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
       }
     },
     {
       "name": "gcc-debug",
       "displayName": "GCC Debug",
-      "inherits": "debug",
+      "inherits": "base",
       "condition": {
         "type": "notEquals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "g++",
-        "CMAKE_C_COMPILER": "gcc"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
       }
     },
     {
       "name": "gcc-release",
       "displayName": "GCC Release",
-      "inherits": "release",
+      "inherits": "base",
       "condition": {
         "type": "notEquals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "g++",
-        "CMAKE_C_COMPILER": "gcc"
-      }
-    },
-    {
-      "name": "clang-debug",
-      "displayName": "Clang Debug",
-      "inherits": "debug",
-      "condition": {
-        "type": "notEquals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      },
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_C_COMPILER": "clang"
-      }
-    },
-    {
-      "name": "clang-release",
-      "displayName": "Clang Release",
-      "inherits": "release",
-      "condition": {
-        "type": "notEquals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      },
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_C_COMPILER": "clang"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
       }
     },
     {
@@ -146,7 +102,7 @@
     {
       "name": "ci-macos",
       "displayName": "CI macOS",
-      "inherits": "clang-release"
+      "inherits": "release"
     },
     {
       "name": "ci-windows",
@@ -156,8 +112,8 @@
   ],
   "buildPresets": [
     {
-      "name": "debug",
-      "configurePreset": "debug",
+      "name": "default",
+      "configurePreset": "default",
       "configuration": "Debug"
     },
     {
@@ -173,16 +129,6 @@
     {
       "name": "gcc-release",
       "configurePreset": "gcc-release",
-      "configuration": "Release"
-    },
-    {
-      "name": "clang-debug",
-      "configurePreset": "clang-debug",
-      "configuration": "Debug"
-    },
-    {
-      "name": "clang-release",
-      "configurePreset": "clang-release",
       "configuration": "Release"
     },
     {

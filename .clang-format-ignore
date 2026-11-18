@@ -1,0 +1,5 @@
+# clang-format-ignore(5) -- vendored and generated paths
+
+# Build system (formatted with cmake-format instead)
+CMakeLists.txt
+*.cmake
